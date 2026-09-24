@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .login-section {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: block;
+        }
+
+        .login-section.hidden {
+            display: none;
+        }
+
+        .dashboard-section {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: none;
+            text-align: center;
+        }
+
+        .dashboard-section.active {
+            display: block;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .welcome-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .welcome-box h2 {
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .message-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            font-size: 18px;
+            color: #333;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 12px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #ff5252;
+        }
+
+        .info-text {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SECCIÓN DE LOGIN -->
+        <div class="login-section" id="loginSection">
+            <h1>🔐 Bienvenido</h1>
+
+            <div class="error" id="errorMessage"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Usuario:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <button type="submit">Iniciar Sesión</button>
+            </form>
+
+            <div class="info-text">
+                <strong>Usuarios de prueba:</strong><br>
+                Usuario 1: juan / contraseña: 1234<br>
+                Usuario 2: maria / contraseña: 5678
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE DASHBOARD -->
+        <div class="dashboard-section" id="dashboardSection">
+            <div class="welcome-box">
+                <h2>¡Bienvenido!</h2>
+                <p id="welcomeName"></p>
+            </div>
+
+            <div class="message-box" id="messageBox"></div>
+
+            <button class="logout-btn" id="logoutBtn">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <script>
+        const usuarios = {
+            juan: {
+                password: '1234',
+                mensaje: '👋 ¡Hola Juan! Bienvenido a tu panel especial. Este es tu espacio personal donde puedes ver tu información exclusiva y gestionar tu perfil.'
+            },
+            maria: {
+                password: '5678',
+                mensaje: '✨ ¡Hola María! Bienvenida a tu dashboard. Aquí encontrarás todas tus herramientas personalizadas y opciones especiales para tu cuenta.'
+            }
+        };
+
+        const loginForm = document.getElementById('loginForm');
+        const loginSection = document.getElementById('loginSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+        const errorMessage = document.getElementById('errorMessage');
+        const welcomeName = document.getElementById('welcomeName');
+        const messageBox = document.getElementById('messageBox');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // Verificar si hay usuario logueado al cargar
+        window.addEventListener('load', () => {
+            const usuarioGuardado = localStorage.getItem('usuarioActual');
+            if (usuarioGuardado) {
+                mostrarDashboard(usuarioGuardado);
+            }
+        });
+
+        // Manejar login
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (usuarios[username] && usuarios[username].password === password) {
+                localStorage.setItem('usuarioActual', username);
+                mostrarDashboard(username);
+            } else {
+                mostrarError('Usuario o contraseña incorrectos');
+                document.getElementById('password').value = '';
+            }
+        });
+
+        // Mostrar dashboard
+        function mostrarDashboard(username) {
+            loginSection.classList.add('hidden');
+            dashboardSection.classList.add('active');
+            welcomeName.textContent = username.charAt(0).toUpperCase() + username.slice(1);
+            messageBox.textContent = usuarios[username].mensaje;
+        }
+
+        // Cerrar sesión
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('usuarioActual');
+            loginSection.classList.remove('hidden');
+            dashboardSection.classList.remove('active');
+            loginForm.reset();
+            errorMessage.classList.remove('show');
+        });
+
+        // Mostrar error
+        function mostrarError(mensaje) {
+            errorMessage.textContent = mensaje;
+            errorMessage.classList.add('show');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
