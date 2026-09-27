@@ -44,7 +44,9 @@ export const obtenerGrupos = async (req, res) => {
     const usuario_id = req.user.id;
 
     const result = await pool.query(`
-      SELECT DISTINCT g.* FROM grupos g
+      SELECT g.*, mg.rol AS mi_rol,
+        (SELECT COUNT(*) FROM miembros_grupo m2 WHERE m2.grupo_id = g.id)::int AS total_miembros
+      FROM grupos g
       JOIN miembros_grupo mg ON g.id = mg.grupo_id
       WHERE mg.usuario_id = $1 AND g.activo = true
       ORDER BY g.fecha_creacion DESC
@@ -74,7 +76,8 @@ export const obtenerGrupoDetalle = async (req, res) => {
 
     const grupoResult = await pool.query('SELECT * FROM grupos WHERE id = $1', [id]);
     const miembrosResult = await pool.query(`
-      SELECT u.id, u.nombre, u.email, mg.rol, mg.fecha_union
+      SELECT u.id, u.nombre, u.email, u.saldo, mg.rol, mg.fecha_union,
+        (SELECT COUNT(*) FROM apuestas a WHERE a.usuario_id = u.id)::int AS total_apuestas
       FROM miembros_grupo mg
       JOIN usuarios u ON mg.usuario_id = u.id
       WHERE mg.grupo_id = $1
@@ -82,8 +85,12 @@ export const obtenerGrupoDetalle = async (req, res) => {
     `, [id]);
 
     const apuestasResult = await pool.query(`
-      SELECT DISTINCT a.* FROM apuestas a
+      SELECT a.*, u.nombre AS usuario_nombre,
+        p.equipo_local, p.equipo_visitante, p.fecha AS fecha_partido
+      FROM apuestas a
       JOIN miembros_grupo mg ON a.usuario_id = mg.usuario_id
+      JOIN usuarios u ON u.id = a.usuario_id
+      JOIN partidos p ON p.id = a.partido_id
       WHERE mg.grupo_id = $1
       ORDER BY a.fecha_apuesta DESC
       LIMIT 20
@@ -92,7 +99,8 @@ export const obtenerGrupoDetalle = async (req, res) => {
     res.json({
       grupo: grupoResult.rows[0],
       miembros: miembrosResult.rows,
-      apuestas: apuestasResult.rows
+      apuestas: apuestasResult.rows,
+      mi_rol: miembroCheck.rows[0].rol
     });
   } catch (error) {
     console.error('Error al obtener grupo:', error);

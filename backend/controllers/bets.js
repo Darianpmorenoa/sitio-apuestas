@@ -39,7 +39,14 @@ export const createBet = async (req, res) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query('UPDATE usuarios SET saldo = saldo - $1 WHERE id = $2', [monto, usuario_id]);
+      const saldoResult = await client.query(
+        'UPDATE usuarios SET saldo = saldo - $1 WHERE id = $2 AND saldo >= $1 RETURNING saldo',
+        [monto, usuario_id]
+      );
+      if (saldoResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Saldo insuficiente' });
+      }
       const result = await client.query(
         'INSERT INTO apuestas (usuario_id, partido_id, monto, prediccion, estado) VALUES ($1, $2, $3, $4, $5) RETURNING *',
         [usuario_id, partido_id, monto, prediccion, 'pendiente']
@@ -48,7 +55,8 @@ export const createBet = async (req, res) => {
 
       res.status(201).json({
         message: 'Apuesta realizada exitosamente',
-        bet: result.rows[0]
+        bet: result.rows[0],
+        saldo: parseFloat(saldoResult.rows[0].saldo)
       });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -67,7 +75,8 @@ export const getUserBets = async (req, res) => {
   try {
     const usuario_id = req.user.id;
     const result = await pool.query(`
-      SELECT a.*, p.equipo_local, p.equipo_visitante, p.resultado
+      SELECT a.*, p.equipo_local, p.equipo_visitante, p.resultado,
+             p.fecha AS fecha_partido, p.goles_local, p.goles_visitante
       FROM apuestas a
       JOIN partidos p ON a.partido_id = p.id
       WHERE a.usuario_id = $1
