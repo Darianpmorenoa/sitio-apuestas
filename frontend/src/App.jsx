@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import axios from 'axios'
 import Navigation from './components/Navigation'
+import Footer from './components/Footer'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -10,6 +11,7 @@ import MyBets from './pages/MyBets'
 import Stats from './pages/Stats'
 import Grupos from './pages/Grupos'
 import GrupoDetalle from './pages/GrupoDetalle'
+import Legal from './pages/Legal'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -49,6 +51,11 @@ function App() {
     localStorage.setItem('user', JSON.stringify(userData))
   }
 
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser)
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+  }
+
   const handleLogout = () => {
     setUser(null)
     setToken(null)
@@ -67,17 +74,19 @@ function App() {
   return (
     <Router>
       <Navigation user={user} onLogout={handleLogout} />
+      {/* En el celular deja espacio para la barra inferior fija */}
+      <div className="pb-[calc(68px+env(safe-area-inset-bottom))] lg:pb-0">
       <Routes>
-        <Route path="/" element={<Home user={user} />} />
+        <Route path="/" element={<Home user={user} token={token} onUserUpdate={handleUserUpdate} />} />
         <Route path="/login" element={token ? <Navigate to="/matches" /> : <Login onLogin={handleLogin} />} />
-        <Route path="/register" element={token ? <Navigate to="/matches" /> : <Register />} />
+        <Route path="/register" element={token ? <Navigate to="/matches" /> : <Register onLogin={handleLogin} />} />
         <Route
           path="/matches"
-          element={token ? <Matches token={token} user={user} /> : <Navigate to="/login" />}
+          element={token ? <Matches token={token} user={user} onUserUpdate={handleUserUpdate} /> : <Navigate to="/login" />}
         />
         <Route
           path="/mis-apuestas"
-          element={token ? <MyBets token={token} /> : <Navigate to="/login" />}
+          element={token ? <MyBets token={token} user={user} /> : <Navigate to="/login" />}
         />
         <Route
           path="/estadisticas"
@@ -89,9 +98,13 @@ function App() {
         />
         <Route
           path="/grupos/:id"
-          element={token ? <GrupoDetalle token={token} /> : <Navigate to="/login" />}
+          element={token ? <GrupoDetalle token={token} user={user} /> : <Navigate to="/login" />}
         />
+        <Route path="/terminos" element={<Legal doc="terminos" />} />
+        <Route path="/privacidad" element={<Legal doc="privacidad" />} />
       </Routes>
+      <Footer />
+      </div>
     </Router>
   )
 }

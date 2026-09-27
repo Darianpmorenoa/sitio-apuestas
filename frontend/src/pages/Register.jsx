@@ -1,71 +1,90 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
-import './Auth.css'
+import { AuthLayout, Field, PasswordField, FormAlert, SubmitButton } from '../components/AuthLayout'
 
-export default function Register() {
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Mismas reglas que backend/utils/validators.js
+const PASSWORD_RULES = [
+  { label: '6+ caracteres', test: (p) => p.length >= 6 },
+  { label: 'Una mayúscula', test: (p) => /[A-Z]/.test(p) },
+  { label: 'Un número', test: (p) => /[0-9]/.test(p) }
+]
+
+const BENEFITS = [
+  'Saldo virtual: nunca pagas nada',
+  'Todos los partidos de la Primera División',
+  'Grupos privados con tus amigos'
+]
+
+function Check({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m5 12 5 5 9-10" />
+    </svg>
+  )
+}
+
+function PasswordRules({ password }) {
+  const passed = PASSWORD_RULES.filter(r => r.test(password)).length
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-3 gap-1.5" aria-hidden="true">
+        {PASSWORD_RULES.map((rule, i) => (
+          <span key={rule.label} className={`h-1 rounded ${i < passed ? 'bg-volt' : 'bg-linea-fuerte'}`} />
+        ))}
+      </div>
+      <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[13px] font-semibold">
+        {PASSWORD_RULES.map(rule => {
+          const ok = rule.test(password)
+          return (
+            <li key={rule.label} className={`flex items-center gap-1.5 ${ok ? 'text-volt' : 'text-gris'}`}>
+              {ok ? <Check /> : <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />}
+              {rule.label}
+              <span className="sr-only">{ok ? '(cumple)' : '(pendiente)'}</span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+export default function Register({ onLogin }) {
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState('')
+  const [errors, setErrors] = useState({})
+  const [serverError, setServerError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const validateForm = () => {
-    if (!nombre.trim()) {
-      setError('El nombre es requerido')
-      return false
-    }
+    const next = {}
 
-    if (nombre.trim().length < 3) {
-      setError('El nombre debe tener al menos 3 caracteres')
-      return false
-    }
+    if (!nombre.trim()) next.nombre = 'El nombre es requerido'
+    else if (nombre.trim().length < 3) next.nombre = 'El nombre debe tener al menos 3 caracteres'
 
-    if (!email.trim()) {
-      setError('El email es requerido')
-      return false
-    }
+    if (!email.trim()) next.email = 'El email es requerido'
+    else if (!EMAIL_REGEX.test(email.trim())) next.email = 'Email inválido'
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setError('Email inválido')
-      return false
-    }
+    if (!password) next.password = 'La contraseña es requerida'
+    else if (password.length < 6) next.password = 'La contraseña debe tener al menos 6 caracteres'
+    else if (!/[A-Z]/.test(password)) next.password = 'La contraseña debe contener al menos una mayúscula'
+    else if (!/[0-9]/.test(password)) next.password = 'La contraseña debe contener al menos un número'
 
-    if (!password) {
-      setError('La contraseña es requerida')
-      return false
-    }
+    if (password !== confirmPassword) next.confirmPassword = 'Las contraseñas no coinciden'
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
-      return false
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setError('La contraseña debe contener al menos una mayúscula')
-      return false
-    }
-
-    if (!/[0-9]/.test(password)) {
-      setError('La contraseña debe contener al menos un número')
-      return false
-    }
-
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden')
-      return false
-    }
-
-    return true
+    setErrors(next)
+    return Object.keys(next).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
+    setServerError('')
     setSuccess('')
 
     if (!validateForm()) {
@@ -82,88 +101,111 @@ export default function Register() {
       })
 
       const { token, user } = response.data
-
-      // Guardar token y usuario
-      localStorage.setItem('token', token)
-      localStorage.setItem('user', JSON.stringify(user))
-
-      setSuccess('¡Registro exitoso! Redirigiendo...')
+      setSuccess('¡Cuenta creada! Te dimos $1.000 para empezar. Redirigiendo...')
       setTimeout(() => {
+        onLogin(user, token)
         navigate('/matches')
       }, 1500)
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al registrar el usuario')
-    } finally {
+      setServerError(err.response?.data?.error || 'Error al registrar el usuario')
       setLoading(false)
     }
   }
 
+  const confirmMismatch = confirmPassword.length > 0 && password !== confirmPassword
+
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h1>⚽ Crear Cuenta</h1>
-
-        {error && <div className="error">{error}</div>}
-        {success && <div className="success">{success}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="nombre">Nombre completo:</label>
-            <input
-              type="text"
-              id="nombre"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-              disabled={loading}
-            />
+    <AuthLayout
+      aside={
+        <>
+          <div className="flex flex-col gap-5">
+            <span className="font-cifras text-[120px] font-bold leading-none tracking-[-4px] text-volt">$1.000</span>
+            <h1 className="font-display text-[64px] uppercase italic leading-[0.95]">Para empezar a jugar hoy</h1>
           </div>
+          <ul className="m-0 flex list-none flex-col gap-3.5 p-0 text-base font-semibold text-[#D5DCE6]">
+            {BENEFITS.map(text => (
+              <li key={text} className="flex items-center gap-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-volt-suave text-volt"><Check /></span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-[18px]">
+        <div className="flex flex-col gap-2">
+          <h2 className="font-display text-5xl uppercase italic leading-none">Crea tu cuenta</h2>
+          <p className="text-[15px] text-gris">Toma menos de un minuto y recibes $1.000 de saldo virtual.</p>
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email:</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
+        {serverError && <FormAlert>{serverError}</FormAlert>}
+        {success && <FormAlert tone="success">{success}</FormAlert>}
 
-          <div className="form-group">
-            <label htmlFor="password">Contraseña:</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
+        <Field
+          id="nombre"
+          label="Nombre"
+          type="text"
+          name="nombre"
+          autoComplete="name"
+          maxLength={100}
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          error={errors.nombre}
+          disabled={loading}
+        />
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirmar contraseña:</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
+        <Field
+          id="email"
+          label="Correo electrónico"
+          type="email"
+          name="email"
+          autoComplete="email"
+          inputMode="email"
+          placeholder="tu@correo.cl"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={errors.email}
+          disabled={loading}
+        />
 
-          <button type="submit" className="btn-submit" disabled={loading}>
-            {loading ? 'Registrando...' : 'Crear Cuenta'}
-          </button>
-        </form>
+        <PasswordField
+          id="password"
+          label="Contraseña"
+          name="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={errors.password}
+          hint={<PasswordRules password={password} />}
+          disabled={loading}
+        />
 
-        <p className="auth-footer">
-          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión aquí</Link>
+        <PasswordField
+          id="confirmPassword"
+          label="Confirmar contraseña"
+          name="confirmPassword"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          error={errors.confirmPassword || (confirmMismatch ? 'Las contraseñas no coinciden' : undefined)}
+          disabled={loading}
+        />
+
+        <SubmitButton loading={loading} loadingText="Creando cuenta...">Crear cuenta y recibir $1.000</SubmitButton>
+
+        <p className="text-center text-[13px] leading-relaxed text-gris">
+          Al crear tu cuenta aceptas los{' '}
+          <Link to="/terminos" className="font-bold text-niebla underline hover:text-tiza">Términos y condiciones</Link>
+          {' '}y la{' '}
+          <Link to="/privacidad" className="font-bold text-niebla underline hover:text-tiza">Política de privacidad</Link>.
         </p>
-      </div>
-    </div>
+
+        <p className="text-center text-[15px] text-niebla">
+          ¿Ya tienes cuenta?{' '}
+          <Link to="/login" className="font-extrabold text-volt no-underline hover:text-[#E2FF8A]">Inicia sesión</Link>
+        </p>
+      </form>
+    </AuthLayout>
   )
 }
