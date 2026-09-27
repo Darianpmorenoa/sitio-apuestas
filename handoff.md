@@ -14,7 +14,7 @@ Sitio web full-stack de apuestas **virtuales** (sin dinero real) sobre la **Prim
 
 ## 2. Estado actual (resumen rápido)
 
-- El trabajo más reciente está en la rama `panel-admin` (con commit, **sin unir a `main` ni subir a GitHub** todavía).
+- `main` está sincronizado con GitHub y no hay cambios sin commit.
 - **Todo el sitio está rediseñado** con el tema oscuro "Estadio nocturno" en Tailwind CSS v4.
 - **Panel de administración** en `/admin`: registrar marcadores (liquidar), suspender partidos y crear partidos nuevos. Solo para usuarios con `es_admin`.
 - La liquidación también sigue disponible por terminal (`npm run liquidar` en `backend/`).
@@ -150,13 +150,12 @@ Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), re
 5. **Forma de trabajo con ramas:** se crea una rama desde `main` (`git checkout -b nombre`), se trabaja ahí, commit y push solo cuando el usuario lo pide, y luego se une a `main` (fast-forward) y se borra la rama.
 
 ### Sesión 3
-1. **Panel de administración** (rama `panel-admin`): migración 002 (`es_admin`), `requireAdmin`, rutas `/api/admin`, comando `npm run admin`, página `/admin` (por liquidar, nuevo partido, próximos, historial) y enlace en el menú de usuario. Probado en el navegador; el usuario liquidó el partido 1 (1-1) desde el panel.
+1. **Panel de administración** (`561f93a`, unido a `main`): migración 002 (`es_admin`), `requireAdmin`, rutas `/api/admin`, comando `npm run admin`, página `/admin` (por liquidar, nuevo partido, próximos, historial) y enlace en el menú de usuario. Probado en el navegador; el usuario liquidó el partido 1 (1-1) desde el panel.
 2. **Bug de zona horaria corregido** (`config/database.js`): las columnas `TIMESTAMP` guardan UTC, pero `pg` las leía como hora de Chile y las fechas quedaban 3 h corridas (se podía apostar hasta 3 h después del inicio). Ahora se leen y escriben como UTC.
 3. `enTransaccion` en `config/database.js`, compartido por el panel y `npm run liquidar`.
 
 ## 8. Próximos pasos
 
-- [ ] **Unir `panel-admin` a `main`** y subir a GitHub cuando el usuario lo pida.
 - [ ] **Probar una apuesta real** con el backend nuevo y revisar que la apuesta guarde `cuota`.
 - [ ] **Completar las páginas legales** antes de publicar (resaltado en ámbar en `pages/Legal.jsx`): nombre del responsable, correo de contacto, edad mínima (puesta en 18) y plazos (puestos en 30 días). Idealmente, revisión de un abogado (Ley 19.628 y su reforma).
 - [ ] Decidir el nombre de la marca (hoy "APUESTAS.CL").
