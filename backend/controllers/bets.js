@@ -1,4 +1,5 @@
 import pool from '../config/database.js';
+import { cuotaDe } from '../utils/cuotas.js';
 
 export const createBet = async (req, res) => {
   try {
@@ -26,9 +27,13 @@ export const createBet = async (req, res) => {
       return res.status(400).json({ error: 'Monto inválido o saldo insuficiente' });
     }
 
-    const matchResult = await pool.query('SELECT id, fecha FROM partidos WHERE id = $1', [partido_id]);
+    const matchResult = await pool.query('SELECT id, fecha, estado FROM partidos WHERE id = $1', [partido_id]);
     if (matchResult.rows.length === 0) {
       return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+
+    if (matchResult.rows[0].estado !== 'pendiente') {
+      return res.status(400).json({ error: 'Este partido ya no acepta apuestas' });
     }
 
     const matchDate = new Date(matchResult.rows[0].fecha);
@@ -48,8 +53,8 @@ export const createBet = async (req, res) => {
         return res.status(400).json({ error: 'Saldo insuficiente' });
       }
       const result = await client.query(
-        'INSERT INTO apuestas (usuario_id, partido_id, monto, prediccion, estado) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [usuario_id, partido_id, monto, prediccion, 'pendiente']
+        'INSERT INTO apuestas (usuario_id, partido_id, monto, prediccion, cuota, estado) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [usuario_id, partido_id, monto, prediccion, cuotaDe(prediccion), 'pendiente']
       );
       await client.query('COMMIT');
 

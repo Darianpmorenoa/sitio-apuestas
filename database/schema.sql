@@ -29,7 +29,7 @@ CREATE TABLE partidos (
   resultado VARCHAR(10),
   goles_local INT,
   goles_visitante INT,
-  estado VARCHAR(20) DEFAULT 'pendiente'
+  estado VARCHAR(20) DEFAULT 'pendiente' -- pendiente, finalizado, suspendido
 );
 
 -- Crear tabla de apuestas
@@ -39,9 +39,11 @@ CREATE TABLE apuestas (
   partido_id INT REFERENCES partidos(id),
   monto DECIMAL(10, 2) NOT NULL,
   prediccion VARCHAR(10) NOT NULL, -- 1 (local), X (empate), 2 (visitante)
-  ganancia DECIMAL(10, 2),
-  estado VARCHAR(20) DEFAULT 'pendiente', -- pendiente, ganada, perdida
-  fecha_apuesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  cuota DECIMAL(5, 2), -- cuota al momento de apostar
+  ganancia DECIMAL(10, 2), -- ganancia neta al liquidar (negativa si se pierde)
+  estado VARCHAR(20) DEFAULT 'pendiente', -- pendiente, ganada, perdida, anulada
+  fecha_apuesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  fecha_liquidacion TIMESTAMP
 );
 
 -- Insertar equipos de ejemplo (Primera División Chilena)
