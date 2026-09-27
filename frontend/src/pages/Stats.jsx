@@ -164,7 +164,11 @@ export default function Stats() {
                             {hasScore(m) ? (
                               <span className="rounded-lg bg-noche px-2.5 py-1 font-cifras text-base font-bold">{m.goles_local} – {m.goles_visitante}</span>
                             ) : (
-                              <span className="rounded-lg bg-ambar-suave px-2.5 py-1 text-[11px] font-extrabold tracking-wider text-ambar">POR CONFIRMAR</span>
+                              m.estado === 'suspendido' ? (
+                                <span className="rounded-lg bg-pasto-alto px-2.5 py-1 text-[11px] font-extrabold tracking-wider text-niebla">SUSPENDIDO</span>
+                              ) : (
+                                <span className="rounded-lg bg-ambar-suave px-2.5 py-1 text-[11px] font-extrabold tracking-wider text-ambar">POR CONFIRMAR</span>
+                              )
                             )}
                             <span className="flex min-w-0 items-center justify-end gap-2">
                               <span className="truncate text-right text-sm font-bold">{m.equipo_visitante}</span>

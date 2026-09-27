@@ -14,7 +14,8 @@ const FILTERS = [
 const STATUS = {
   pendiente: { label: 'Pendiente', badge: 'bg-ambar-suave text-ambar', result: 'text-niebla' },
   ganada: { label: 'Ganada', badge: 'bg-volt-suave text-volt', result: 'text-volt' },
-  perdida: { label: 'Perdida', badge: 'bg-roja-suave text-roja', result: 'text-roja' }
+  perdida: { label: 'Perdida', badge: 'bg-roja-suave text-roja', result: 'text-roja' },
+  anulada: { label: 'Anulada', badge: 'bg-pasto-alto text-niebla', result: 'text-niebla' }
 }
 
 // Columnas de la tabla en escritorio: partido, pronóstico, monto, cuota, resultado, estado
@@ -22,15 +23,15 @@ const ROW_COLS = 'lg:grid-cols-[minmax(0,1fr)_104px_72px_56px_100px_96px]'
 
 const formatSigned = (value) => `${value < 0 ? '−' : '+'}${formatMoney(value)}`
 
-const betOdds = (bet) => ODDS[bet.prediccion] ?? ODDS['1']
+// Cuota guardada al apostar; las apuestas antiguas usan la cuota fija del pronóstico
+const betOdds = (bet) => parseFloat(bet.cuota) || ODDS[bet.prediccion] || ODDS['1']
 
-// Ganancia neta de una apuesta cerrada: usa la del servidor si existe
+// Ganancia neta de una apuesta cerrada: la calcula el servidor al liquidar
 const betProfit = (bet) => {
   const monto = parseFloat(bet.monto)
+  if (bet.ganancia != null) return parseFloat(bet.ganancia)
   if (bet.estado === 'perdida') return -monto
-  if (bet.estado === 'ganada') {
-    return bet.ganancia != null ? parseFloat(bet.ganancia) : monto * (betOdds(bet) - 1)
-  }
+  if (bet.estado === 'ganada') return monto * (betOdds(bet) - 1)
   return 0
 }
 
@@ -67,7 +68,9 @@ function BetRow({ bet }) {
   const odds = betOdds(bet)
   const monto = parseFloat(bet.monto)
   const pending = bet.estado === 'pendiente'
-  const result = pending ? formatMoney(monto * odds) : formatSigned(betProfit(bet))
+  const result = pending ? formatMoney(monto * odds)
+    : bet.estado === 'anulada' ? `${formatMoney(monto)} devuelto`
+    : formatSigned(betProfit(bet))
 
   return (
     <article className={`flex flex-col gap-3 rounded-2xl bg-pasto p-4 lg:grid lg:min-h-[76px] ${ROW_COLS} lg:items-center lg:gap-3 lg:px-4 lg:py-3`}>

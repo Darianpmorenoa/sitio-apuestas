@@ -15,7 +15,8 @@ const AVATAR_COLORS = [
 const STATUS = {
   pendiente: { label: 'Pendiente', className: 'bg-ambar-suave text-ambar' },
   ganada: { label: 'Ganada', className: 'bg-volt-suave text-volt' },
-  perdida: { label: 'Perdida', className: 'bg-roja-suave text-roja' }
+  perdida: { label: 'Perdida', className: 'bg-roja-suave text-roja' },
+  anulada: { label: 'Anulada', className: 'bg-pasto-alto text-niebla' }
 }
 
 const personInitials = (name = '') =>

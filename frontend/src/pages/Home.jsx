@@ -346,7 +346,7 @@ export default function Home({ user, token, onUserUpdate }) {
                 <p className="text-niebla">No tienes apuestas pendientes. Elige un partido y haz tu pronóstico.</p>
               ) : (
                 pendingBets.slice(0, 3).map(bet => {
-                  const odds = ODDS[bet.prediccion] ?? ODDS['1']
+                  const odds = parseFloat(bet.cuota) || ODDS[bet.prediccion] || ODDS['1']
                   const monto = parseFloat(bet.monto)
                   return (
                     <div key={bet.id} className="flex items-center gap-4 rounded-2xl bg-pasto p-4">
