@@ -1,115 +1,185 @@
 # Handoff: Sitio de Apuestas Deportivas
 
 > Contexto para retomar el trabajo en una nueva sesión con Claude.
-> Última actualización: 2026-09-27 (rama `liquidar-apuestas`).
-> **Al empezar una sesión nueva:** pide a Claude que lea este archivo y ejecuta `git status` y `git log --oneline`, porque el estado puede haber cambiado.
+> Última actualización: 2026-09-27.
+> **Al empezar una sesión nueva:** pide a Claude que lea este archivo y ejecute `git status` y `git log --oneline`, porque el estado puede haber cambiado.
 
 ## 1. Qué es el proyecto
 
-Sitio web full-stack de apuestas virtuales sobre la **Primera División Chilena**. Los usuarios se registran, reciben $1000 de saldo virtual, apuestan en partidos (1 / X / 2), ven su historial y estadísticas del torneo, y crean **grupos de apuestas** con invitación por WhatsApp.
+Sitio web full-stack de apuestas **virtuales** (sin dinero real) sobre la **Primera División de Chile**. Los usuarios se registran, reciben $1.000 de saldo virtual, apuestan en partidos (1 / X / 2), ven su historial y las estadísticas del torneo, y crean **grupos** para competir con amigos, con invitación por WhatsApp.
 
 - **Carpeta local:** `C:\Darian\repositorios\sitio-apuestas`
-- **GitHub:** https://github.com/Darianpmorenoa/sitio-apuestas
+- **GitHub:** https://github.com/Darianpmorenoa/sitio-apuestas (todo está en `main`)
 - **Idioma:** todo en español (UI, commits, conversación).
 
-## 2. Stack
+## 2. Estado actual (resumen rápido)
+
+- El trabajo más reciente está en la rama `panel-admin` (con commit, **sin unir a `main` ni subir a GitHub** todavía).
+- **Todo el sitio está rediseñado** con el tema oscuro "Estadio nocturno" en Tailwind CSS v4.
+- **Panel de administración** en `/admin`: registrar marcadores (liquidar), suspender partidos y crear partidos nuevos. Solo para usuarios con `es_admin`.
+- La liquidación también sigue disponible por terminal (`npm run liquidar` en `backend/`).
+- El partido 1 (Colo-Colo vs U. de Chile) se liquidó 1-1 desde el panel el 2026-09-27; la apuesta de juan al empate quedó ganada.
+- **Sin probar todavía:** hacer una apuesta real con el backend nuevo y confirmar que se guarda la columna `cuota`; la vista móvil del panel.
+
+## 3. Stack
 
 | Capa | Tecnología |
 |---|---|
 | Frontend | React 18 + Vite 5 + React Router 6 + Axios + **Tailwind CSS v4** (con preflight), puerto **3000** |
-| Backend | Node.js + Express (ES modules), JWT (`jsonwebtoken`), `bcryptjs`, `pg`, puerto **5000** |
+| Backend | Node.js 22 + Express (ES modules), JWT (`jsonwebtoken`), `bcryptjs`, `pg`, puerto **5000** |
 | Base de datos | PostgreSQL en **Supabase** |
+| Tests | `node:test` (sin dependencias), `npm test` en `backend/` |
 
 ### Estructura
 
 ```
 backend/
-  config/database.js      # Pool de pg (SSL si DB_HOST != localhost)
-  controllers/            # auth, matches, bets, grupos
-  routes/                 # /api/auth, /api/matches, /api/bets, /api/grupos
-  middleware/auth.js      # verifica JWT (con logs de depuración)
+  config/database.js        # Pool de pg (SSL si DB_HOST != localhost)
+  controllers/              # auth, matches, bets, grupos, admin
+  routes/                   # /api/auth, /api/matches, /api/bets, /api/grupos, /api/admin
+  middleware/auth.js        # verifyToken (con logs de depuración) y requireAdmin
+  services/liquidacion.js   # liquidar/anular partidos y apuestas
+  services/partidos.js      # validar y crear partidos nuevos
+  scripts/liquidar.js       # comando `npm run liquidar`
+  scripts/admin.js          # comando `npm run admin` (dar/quitar rol de administrador)
+  tests/                    # pruebas de liquidación y de partidos
+  utils/cuotas.js           # cuotas fijas por pronóstico (1.85 / 3.20 / 4.10)
   utils/validators.js
-  .env                    # NO está en git (credenciales)
+  .env                      # NO está en git (credenciales)
 frontend/src/
-  App.jsx                 # rutas + estado global de user/token (handleLogin, handleUserUpdate)
-  index.css               # Tailwind + tokens del diseño (@theme) + base mínima
+  App.jsx                   # rutas + estado global de user/token (handleLogin, handleUserUpdate)
+  index.css                 # Tailwind + tokens del diseño (@theme) + base mínima
   components/
-    Navigation.jsx        # barra superior + barra inferior en móvil + menú de usuario
-    Footer.jsx            # pie global con enlaces legales
-    AuthLayout.jsx        # layout dividido y campos (Field, PasswordField, FormAlert, SubmitButton)
-    Crest.jsx             # escudo con iniciales y colores del club
+    Navigation.jsx          # barra superior + barra inferior en móvil + menú de usuario
+    Footer.jsx              # pie global con enlaces legales
+    AuthLayout.jsx          # layout dividido y campos (Field, PasswordField, FormAlert, SubmitButton)
+    Crest.jsx               # escudo con iniciales y colores del club
   utils/
-    futbol.js             # ODDS, equipos, formatMoney, formatKickoff, SALDO_INICIAL
-    grupos.js             # iniciales y color de la ficha de cada grupo
-    tabla.js              # cálculo de la tabla de posiciones
-  pages/                  # Home, Login, Register, Matches, MyBets, Stats, Grupos, GrupoDetalle, Legal
+    futbol.js               # ODDS, equipos, formatMoney, formatKickoff, SALDO_INICIAL
+    grupos.js               # iniciales y color de la ficha de cada grupo
+    tabla.js                # cálculo de la tabla de posiciones
+  pages/                    # Home, Login, Register, Matches, MyBets, Stats, Grupos, GrupoDetalle, Legal, Admin
 database/
-  schema.sql              # usuarios, equipos, partidos, apuestas + datos de ejemplo
-  grupos.sql              # grupos, miembros_grupo, apuestas_grupo
+  schema.sql                # esquema completo + datos de ejemplo (instalación nueva)
+  grupos.sql                # grupos, miembros_grupo, apuestas_grupo
+  migraciones/001_liquidacion.sql      # columnas cuota y fecha_liquidacion (ya aplicada en Supabase)
+  migraciones/002_administradores.sql  # columna usuarios.es_admin (ya aplicada en Supabase)
 ```
+
+### Rutas del frontend
+
+`/` Inicio · `/login` · `/register` · `/matches` Partidos · `/mis-apuestas` · `/estadisticas` · `/grupos` · `/grupos/:id` · `/admin` (solo administradores) · `/terminos` · `/privacidad`
 
 ### Cómo correrlo
 
 ```bash
 cd backend  && npm run dev   # http://localhost:5000
 cd frontend && npm run dev   # http://localhost:3000
+cd backend  && npm test      # pruebas de liquidación y partidos
 ```
 
 Si el navegador muestra `ERR_CONNECTION_REFUSED` en `:5000`, el backend está detenido.
 
-## 3. Configuración de Supabase (importante)
+## 4. Configuración de Supabase (importante)
 
 - Proyecto Supabase ID: `apyzpytwoofnwxgzjavw`, región **ca-central-1**.
 - **Se usa el Session pooler, NO la conexión directa.** El host directo solo tiene IPv6 y la red del usuario no tiene IPv6 (`ENOTFOUND` → error 500).
 - `backend/.env` usa `DB_HOST=aws-0-ca-central-1.pooler.supabase.com`, `DB_USER=postgres.apyzpytwoofnwxgzjavw`, `DB_PORT=5432`, `DB_NAME=postgres`. La contraseña y el `JWT_SECRET` están solo en el archivo local.
-- Los datos de prueba que había creado Claude (usuario `prueba907405448@test.com`, sus apuestas y el "Grupo de prueba") se borraron el 2026-09-27.
-- El usuario tiene su propia cuenta de pruebas ("juan"). Para probar, crear una cuenta nueva en `/register` o pedirle credenciales.
+- Datos actuales: 5 partidos de ejemplo (el 1 ya liquidado 1-1), la cuenta de pruebas del usuario ("juan") y la cuenta **administradora** `admin123@test.cl` (nombre "Administrador"; la contraseña la tiene el usuario, no se escribe en archivos).
+- Para probar, crear una cuenta nueva en `/register` o pedirle credenciales al usuario. **No hacer apuestas con la cuenta del usuario sin preguntar.**
 
-## 4. Diseño "Estadio nocturno"
+## 5. Reglas del negocio
 
-Todo el sitio usa un tema oscuro tipo casa de apuestas. Lienzo de diseño (privado): https://claude.ai/artifact/KLxUoppYAEDpo5ac9thYhM
+- Saldo inicial: **$1.000** virtuales. No es dinero, no se canjea.
+- Cuotas fijas: **1 → 1.85**, **X → 3.20**, **2 → 4.10** (`backend/utils/cuotas.js` y `frontend/src/utils/futbol.js`; deben coincidir).
+- Al apostar se descuenta el monto del saldo (de forma atómica) y se guarda la `cuota`. No se puede apostar en partidos que ya empezaron, finalizados o suspendidos. Máximo $100.000 por apuesta.
+- Estados de **partido**: `pendiente` → `finalizado` | `suspendido`.
+- Estados de **apuesta**: `pendiente` → `ganada` | `perdida` | `anulada`.
+- Al **liquidar** (una sola transacción): se guarda marcador y resultado del partido; cada apuesta queda ganada o perdida con su **ganancia neta** (`ganancia`, negativa si se pierde); al ganador se le suma `monto × cuota`. Un partido no se liquida dos veces ni antes de jugarse.
+- Al **anular** un partido suspendido: apuestas `anulada`, ganancia 0 y se devuelve el monto.
+- **Ranking de grupos:** por saldo actual (todos parten con $1.000).
+- **Administradores:** columna `usuarios.es_admin`. Las rutas `/api/admin/*` pasan por `requireAdmin`, que consulta la base en cada petición (quitar el rol tiene efecto inmediato). El frontend muestra el panel según `user.es_admin` (viene en login y `/api/auth/verify`).
+- **Partidos nuevos** (panel): equipos de la tabla `equipos`, distintos entre sí, fecha futura dentro del próximo año y ningún equipo con otro partido a menos de 24 h.
 
-- **Colores** (tokens en `index.css`, usar como `bg-volt`, `text-gris`, etc.): `noche` #07090D (fondo), `grada` #0F141C (tarjetas), `pasto` #151C27 (filas), `linea` #232D3C (bordes), `tiza` #F2F5F9 (texto), `niebla`/`gris` (texto secundario), `volt` #C8FF2E (acento, ganada), `ambar` (pendiente), `roja` (perdida, errores).
+### Comando de liquidación (desde `backend/`)
+
+```bash
+npm run liquidar                   # lista los partidos jugados pendientes de liquidar
+npm run liquidar -- 1 2 1          # el partido 1 terminó 2-1
+npm run liquidar -- 1 --anular     # el partido 1 se suspendió: devuelve lo apostado
+```
+
+### Comando de administradores (desde `backend/`)
+
+```bash
+npm run admin                      # lista los administradores
+npm run admin -- <email>           # le da el rol (debe recargar la página para ver el panel)
+npm run admin -- <email> --quitar  # le quita el rol
+```
+
+## 6. Diseño "Estadio nocturno"
+
+Lienzo de diseño (privado): https://claude.ai/artifact/KLxUoppYAEDpo5ac9thYhM
+
+- **Colores** (tokens en `index.css`, se usan como `bg-volt`, `text-gris`, etc.): `noche` #07090D (fondo), `grada` #0F141C (tarjetas), `pasto` #151C27 (filas), `linea` #232D3C (bordes), `tiza` #F2F5F9 (texto), `niebla`/`gris` (texto secundario), `volt` #C8FF2E (acento, ganada), `ambar` (pendiente), `roja` (perdida, errores).
 - **Fuentes** (Google Fonts en `index.html`): `font-display` Barlow Condensed 800 (títulos en cursiva y mayúsculas), `font-body` Manrope, `font-cifras` JetBrains Mono (montos, cuotas).
-- Marca provisoria: **APUESTAS.CL** (placeholder; cambiar en `Navigation.jsx` y `AuthLayout`/páginas si se decide otro nombre).
+- Marca provisoria: **APUESTAS.CL** (placeholder; está en `Navigation.jsx`).
 - Todas las páginas son responsive (probadas a 390 px y 1280 px).
 
-## 5. Lo que se hizo
+## 7. Historial de lo trabajado
 
 ### Sesión 1
-Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), reorganización del repo, arreglo del saldo que no se actualizaba al apostar (descuento atómico en `bets.js` + `handleUserUpdate` en `App.jsx`).
+Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), reorganización del repo, arreglo del saldo que no se actualizaba al apostar.
 
-### Sesión 2 (rediseño completo)
-1. **Lienzo de diseño** con sistema visual, navegación, login/registro, inicio, mis apuestas, grupos y móvil.
-2. **Todas las páginas migradas a Tailwind** con el diseño oscuro; se borraron todos los `.css` por página y se activó el **preflight** de Tailwind.
-3. **Navegación:** enlaces activos, chip de saldo, menú de usuario (Esc / clic fuera), barra inferior fija en móvil.
-4. **Inicio:** partido destacado con **cupón de apuesta funcional**, próximos partidos, tus apuestas pendientes y tus grupos (o "cómo funciona" sin sesión). Se quitaron estadísticas inventadas.
-5. **Partidos:** agrupados por día; cupón oscuro (modal en escritorio, hoja inferior en móvil).
-6. **Mis apuestas:** resumen (saldo, apostado, ganancia neta, acierto), filtros, tabla/tarjetas, racha y distribución de pronósticos. Cuota según pronóstico (1.85 / 3.20 / 4.10).
-7. **Login y Registro:** errores por campo, mostrar contraseña, reglas de contraseña en vivo, `autocomplete`. **Arreglo:** el registro no guardaba la sesión en `App.jsx` (ahora llama a `onLogin`).
-8. **Grupos y detalle:** crear/unirse sin modales; detalle con **ranking por saldo**, últimas apuestas con nombres reales, copiar código y WhatsApp (solo admin). Sin `alert()`.
-9. **Estadísticas:** tabla de posiciones con forma, últimos resultados y próximos. **Arreglo:** antes usaba `/api/matches` (solo partidos futuros) y nunca mostraba resultados; ahora usa también `/api/matches/resultados/historial`.
-10. **Legal:** `/terminos` y `/privacidad` (describen lo que la app realmente hace con los datos) + pie de página global. El registro enlaza a ambas.
-11. **Backend:**
-    - `bets.js`: `GET /api/bets` devuelve también `fecha_partido`, `goles_local`, `goles_visitante`.
-    - `grupos.js`: la lista incluye `mi_rol` y `total_miembros`; el detalle incluye `mi_rol`, saldo y `total_apuestas` de cada miembro, y nombre de usuario + equipos en cada apuesta.
+### Sesión 2
+1. **Rediseño completo** (`cfe7c74`): todas las páginas en Tailwind con el tema oscuro; se borraron todos los `.css` por página y se activó el preflight.
+   - Navegación con saldo, menú de usuario y barra inferior en móvil.
+   - Inicio con partido destacado y cupón de apuesta funcional.
+   - Partidos agrupados por día; cupón en modal (escritorio) u hoja inferior (móvil).
+   - Mis apuestas con resumen, filtros, racha y distribución de pronósticos.
+   - Login y Registro con validación por campo y reglas de contraseña en vivo.
+   - Grupos y detalle con ranking, código copiable e invitación por WhatsApp (solo admin).
+   - Estadísticas con tabla de posiciones, forma, últimos resultados y próximos.
+   - Páginas `/terminos` y `/privacidad` + pie de página global.
+2. **Errores corregidos:**
+   - El registro no guardaba la sesión en `App.jsx` (volvía al login).
+   - Estadísticas usaba solo partidos futuros y nunca mostraba resultados.
+   - El detalle de grupo mostraba IDs en vez de nombres de usuario y partido.
+3. **Backend enriquecido** (`cabbe99`): las apuestas traen fecha y goles del partido; los grupos traen rol, total de miembros, saldo y apuestas de cada miembro.
+4. **Liquidación de apuestas** (`dfded8d`, `423679f`, `4933743`): servicio, comando, migración, pruebas y estados "anulada"/"suspendido" en el frontend.
+5. **Forma de trabajo con ramas:** se crea una rama desde `main` (`git checkout -b nombre`), se trabaja ahí, commit y push solo cuando el usuario lo pide, y luego se une a `main` (fast-forward) y se borra la rama.
 
-## 6. Próximos pasos
+### Sesión 3
+1. **Panel de administración** (rama `panel-admin`): migración 002 (`es_admin`), `requireAdmin`, rutas `/api/admin`, comando `npm run admin`, página `/admin` (por liquidar, nuevo partido, próximos, historial) y enlace en el menú de usuario. Probado en el navegador; el usuario liquidó el partido 1 (1-1) desde el panel.
+2. **Bug de zona horaria corregido** (`config/database.js`): las columnas `TIMESTAMP` guardan UTC, pero `pg` las leía como hora de Chile y las fechas quedaban 3 h corridas (se podía apostar hasta 3 h después del inicio). Ahora se leen y escriben como UTC.
+3. `enTransaccion` en `config/database.js`, compartido por el panel y `npm run liquidar`.
 
-- [ ] **Completar las páginas legales** antes de publicar (aparecen resaltadas en ámbar en `pages/Legal.jsx`): nombre del responsable, correo de contacto, edad mínima (puesta en 18) y plazos (puestos en 30 días). Idealmente, revisión de un abogado (Ley 19.628 y su reforma).
+## 8. Próximos pasos
+
+- [ ] **Unir `panel-admin` a `main`** y subir a GitHub cuando el usuario lo pida.
+- [ ] **Probar una apuesta real** con el backend nuevo y revisar que la apuesta guarde `cuota`.
+- [ ] **Completar las páginas legales** antes de publicar (resaltado en ámbar en `pages/Legal.jsx`): nombre del responsable, correo de contacto, edad mínima (puesta en 18) y plazos (puestos en 30 días). Idealmente, revisión de un abogado (Ley 19.628 y su reforma).
 - [ ] Decidir el nombre de la marca (hoy "APUESTAS.CL").
-- [x] **Liquidar apuestas** (rama `liquidar-apuestas`): `npm run liquidar` en `backend/` registra el marcador, marca apuestas como ganadas/perdidas, guarda la ganancia neta y paga al saldo; `--anular` devuelve lo apostado. Cada apuesta guarda su `cuota` (migración `database/migraciones/001_liquidacion.sql`, **ya aplicada en Supabase**). Tests con `npm test` en `backend/`.
-- [ ] Liquidación desde la web: hoy solo por terminal. Falta un rol de administrador (no existe en `usuarios`) y una pantalla para cargar marcadores.
+- [x] **Liquidación desde la web** y **carga de partidos nuevos**: panel `/admin` (sesión 3).
+- [ ] Probar la vista móvil del panel (390 px).
+- [ ] No hay forma de **revertir una liquidación** si se carga un marcador equivocado (hoy habría que corregirlo a mano en la base).
+- [ ] Los partidos de ejemplo no guardan `equipo_local_id`/`equipo_visitante_id` (los creados desde el panel sí).
 - [ ] Las URLs `http://localhost:5000` siguen fijas en el código; hay un proxy `/api` en Vite sin usar.
 - [ ] Los logs de depuración en `middleware/auth.js` y `bets.js` siguen activos.
 - [ ] No existe `.env.example`.
 - [ ] La tabla `apuestas_grupo` no se usa (el detalle muestra las apuestas de los miembros).
-- [ ] Opcional: permitir que cualquier miembro (no solo el admin) genere el enlace de WhatsApp; hoy los miembros solo ven el código.
+- [ ] Opcional: permitir que cualquier miembro (no solo el admin) genere el enlace de WhatsApp.
 
-## 7. Cuidados y gotchas
+## 9. Cuidados y gotchas
 
-- **Tailwind v4 con preflight:** los estilos base están en `index.css` (`@layer base`). Ya no hay CSS global por página; todo va con clases de Tailwind y los tokens del tema.
-- Reutiliza `utils/futbol.js`, `Crest`, `AuthLayout` (Field, FormAlert…) en vez de duplicar formatos o estilos.
-- **Claude in Chrome:** para pruebas en el navegador, el usuario ejecuta `/chrome`. El usuario puede estar usando la misma pestaña; no hacer acciones que cambien datos de su cuenta.
+- **Tailwind v4 con preflight:** la base está en `index.css` (`@layer base`). No hay CSS por página; todo va con clases de Tailwind y los tokens del tema.
+- Reutiliza `utils/futbol.js`, `Crest` y `AuthLayout` (Field, FormAlert…) en vez de duplicar formatos o estilos.
+- Si cambias las cuotas, cámbialas en **backend y frontend**.
+- Cambios de base de datos: crear una migración nueva en `database/migraciones/` (numerada, que se pueda correr más de una vez), actualizar `schema.sql` y avisar antes de aplicarla en Supabase.
+- Para probar la liquidación contra la base real sin cambiar datos: correr `liquidarPartido` dentro de una transacción y hacer `ROLLBACK`.
+- **Fechas:** en la base todo `TIMESTAMP` es UTC. No quitar la configuración de `config/database.js`. Desde el frontend, enviar fechas con `toISOString()`.
+- **Pruebas en el navegador:** el usuario puede estar usando la misma pestaña al mismo tiempo. Antes de iniciar sesión con otra cuenta, guardar la sesión que haya en `localStorage` y restaurarla al terminar.
+- **Claude in Chrome:** el usuario lo activa con `/chrome`. Puede estar usando la misma pestaña; no hacer acciones que cambien datos de su cuenta.
 - **Nunca subir `backend/.env`** (está en `.gitignore`). Nunca escribir contraseñas en archivos versionados.
-- El usuario trabaja en Windows (PowerShell / Git Bash). Prefiere explicaciones en español, paso a paso.
+- En Windows, `curl` desde Git Bash puede enviar texto con tildes mal codificado; para probar la API con acentos es mejor usar Node.
+- El usuario trabaja en Windows (PowerShell / Git Bash) y prefiere explicaciones en español, paso a paso.
