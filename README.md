@@ -41,7 +41,7 @@ Plataforma web completa para realizar apuestas en la Primera División Chilena. 
 ### Backend
 - **Node.js** - Runtime JavaScript
 - **Express.js** - Framework web
-- **PostgreSQL** - Base de datos
+- **PostgreSQL (Supabase)** - Base de datos en la nube
 - **JWT** - Autenticación
 - **bcryptjs** - Encriptación de contraseñas
 
@@ -49,34 +49,49 @@ Plataforma web completa para realizar apuestas en la Primera División Chilena. 
 
 ### Requisitos Previos
 - Node.js v16+
-- PostgreSQL v12+
+- Cuenta en [Supabase](https://supabase.com) (o PostgreSQL v12+ local)
 - npm o yarn
 
 ### Paso 1: Clonar Repositorio
 ```bash
-git clone https://github.com/tuusuario/sitio-apuestas.git
+git clone https://github.com/Darianpmorenoa/sitio-apuestas.git
 cd sitio-apuestas
 ```
 
-### Paso 2: Configurar Base de Datos
-1. Crea una BD en PostgreSQL:
-```sql
-CREATE DATABASE apuestas_deportivas;
-```
+### Paso 2: Configurar Base de Datos (Supabase)
 
-2. Ejecuta el script SQL:
+La base de datos está alojada en [Supabase](https://supabase.com) (PostgreSQL en la nube).
+
+1. Crea un proyecto en Supabase y guarda la contraseña de la base de datos.
+2. En el panel, abre **SQL Editor** y ejecuta el contenido de:
+   - `database/schema.sql` (usuarios, equipos, partidos, apuestas y datos de ejemplo)
+   - `database/grupos.sql` **solo hasta la línea `-- Inserts de ejemplo`**; esos inserts requieren que exista el usuario con id 1.
+3. Haz clic en **Connect** → **Session pooler** y copia la URL de conexión:
+   ```
+   postgresql://postgres.<PROJECT_REF>:[YOUR-PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres
+   ```
+
+> ⚠️ **Usa el Session pooler, no la conexión directa.** El host directo (`db.<PROJECT_REF>.supabase.co`) solo tiene IPv6; en redes sin IPv6 el backend falla con `ENOTFOUND` y el registro devuelve error 500.
+
+<details>
+<summary>Alternativa: PostgreSQL local</summary>
+
 ```bash
+psql -U postgres -c "CREATE DATABASE apuestas_deportivas;"
 psql -U postgres -d apuestas_deportivas -f database/schema.sql
 psql -U postgres -d apuestas_deportivas -f database/grupos.sql
 ```
+
+Usa `DB_HOST=localhost` en el `.env` (con `localhost` la conexión no usa SSL).
+</details>
 
 ### Paso 3: Configurar Backend
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Edita .env con tus credenciales PostgreSQL
 ```
+
+Crea el archivo `backend/.env` con los datos de la URL del pooler (ver [Variables de Entorno](#-variables-de-entorno-env)).
 
 ### Paso 4: Configurar Frontend
 ```bash
@@ -109,7 +124,7 @@ sitio-apuestas/
 │   ├── controllers/      # Lógica de negocio
 │   ├── routes/          # Rutas API
 │   ├── middleware/      # Autenticación
-│   ├── .env.example     # Variables de entorno
+│   ├── .env             # Variables de entorno (no se sube a git)
 │   └── server.js        # Servidor principal
 ├── frontend/
 │   ├── src/
@@ -128,14 +143,24 @@ sitio-apuestas/
 
 ```env
 PORT=5000
-DB_HOST=localhost
+DB_HOST=aws-0-<REGION>.pooler.supabase.com
 DB_PORT=5432
-DB_NAME=apuestas_deportivas
-DB_USER=postgres
-DB_PASSWORD=tu_contraseña
+DB_NAME=postgres
+DB_USER=postgres.<PROJECT_REF>
+DB_PASSWORD=tu_contraseña_de_supabase
 JWT_SECRET=tu_clave_secreta
 NODE_ENV=development
 ```
+
+| Variable | De dónde sale |
+|---|---|
+| `DB_HOST` | Host de la URL del Session pooler (ej. `aws-0-ca-central-1.pooler.supabase.com`) |
+| `DB_USER` | `postgres.` + el ID de tu proyecto (el usuario **incluye** el ID) |
+| `DB_PASSWORD` | Contraseña definida al crear el proyecto |
+| `DB_NAME` | Siempre `postgres` en Supabase |
+
+- La conexión usa SSL automáticamente cuando `DB_HOST` no es `localhost` (Supabase lo exige). Ver `backend/config/database.js`.
+- `.env` está en `.gitignore`: **nunca subas tus credenciales a GitHub.**
 
 ## 📊 API Endpoints
 
