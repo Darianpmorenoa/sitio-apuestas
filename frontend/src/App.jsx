@@ -12,6 +12,7 @@ import Stats from './pages/Stats'
 import Grupos from './pages/Grupos'
 import GrupoDetalle from './pages/GrupoDetalle'
 import Legal from './pages/Legal'
+import Admin from './pages/Admin'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -99,6 +100,10 @@ function App() {
         <Route
           path="/grupos/:id"
           element={token ? <GrupoDetalle token={token} user={user} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/admin"
+          element={token && user?.es_admin ? <Admin token={token} onUserUpdate={handleUserUpdate} /> : <Navigate to="/" />}
         />
         <Route path="/terminos" element={<Legal doc="terminos" />} />
         <Route path="/privacidad" element={<Legal doc="privacidad" />} />

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import pool from '../config/database.js';
 
 export const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -20,5 +21,19 @@ export const verifyToken = (req, res, next) => {
   } catch (error) {
     console.log('❌ Token inválido:', error.message);
     res.status(401).json({ error: 'Token inválido' });
+  }
+};
+
+// Va después de verifyToken. Consulta la base en cada petición para que quitar el rol tenga efecto inmediato.
+export const requireAdmin = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query('SELECT es_admin FROM usuarios WHERE id = $1', [req.user.id]);
+    if (!rows[0]?.es_admin) {
+      return res.status(403).json({ error: 'Solo los administradores pueden hacer esto' });
+    }
+    next();
+  } catch (error) {
+    console.error('Error al verificar el rol de administrador:', error);
+    res.status(500).json({ error: 'Error al verificar permisos' });
   }
 };

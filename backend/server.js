@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.js';
 import matchesRoutes from './routes/matches.js';
 import betsRoutes from './routes/bets.js';
 import gruposRoutes from './routes/grupos.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/matches', matchesRoutes);
 app.use('/api/bets', betsRoutes);
 app.use('/api/grupos', gruposRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Servidor de apuestas deportivas funcionando ✅' });

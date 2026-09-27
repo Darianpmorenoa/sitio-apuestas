@@ -18,7 +18,7 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      'INSERT INTO usuarios (email, password, nombre, saldo) VALUES ($1, $2, $3, $4) RETURNING id, email, nombre, saldo',
+      'INSERT INTO usuarios (email, password, nombre, saldo) VALUES ($1, $2, $3, $4) RETURNING id, email, nombre, saldo, es_admin',
       [email.toLowerCase(), hashedPassword, nombre.trim(), 1000]
     );
 
@@ -65,7 +65,7 @@ export const login = async (req, res) => {
     res.json({
       message: 'Login exitoso',
       token,
-      user: { id: user.id, email: user.email, nombre: user.nombre, saldo: user.saldo }
+      user: { id: user.id, email: user.email, nombre: user.nombre, saldo: user.saldo, es_admin: user.es_admin }
     });
   } catch (error) {
     console.error('Error en login:', error);
@@ -82,7 +82,7 @@ export const verifyToken = async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const result = await pool.query('SELECT id, email, nombre, saldo FROM usuarios WHERE id = $1', [decoded.id]);
+    const result = await pool.query('SELECT id, email, nombre, saldo, es_admin FROM usuarios WHERE id = $1', [decoded.id]);
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Usuario no encontrado' });

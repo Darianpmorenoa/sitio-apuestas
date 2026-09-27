@@ -5,6 +5,7 @@ CREATE TABLE usuarios (
   password VARCHAR(255) NOT NULL,
   nombre VARCHAR(100) NOT NULL,
   saldo DECIMAL(10, 2) DEFAULT 1000,
+  es_admin BOOLEAN NOT NULL DEFAULT false, -- puede usar el panel /admin
   fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

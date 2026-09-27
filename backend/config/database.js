@@ -3,7 +3,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const { Pool } = pkg;
+const { Pool, types, defaults } = pkg;
+
+// Las columnas TIMESTAMP (sin zona horaria) guardan la hora en UTC, igual que NOW() en Supabase.
+// Sin esto, pg las leería y escribiría con la hora local del servidor (Chile) y quedarían corridas.
+types.setTypeParser(types.builtins.TIMESTAMP, (valor) => new Date(`${valor.replace(' ', 'T')}Z`));
+defaults.parseInputDatesAsUTC = true;
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -13,5 +18,21 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   ssl: process.env.DB_HOST === 'localhost' ? false : { rejectUnauthorized: false },
 });
+
+// Ejecuta `accion(client)` dentro de una transacción: COMMIT si termina bien, ROLLBACK si falla.
+export const enTransaccion = async (accion) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const resultado = await accion(client);
+    await client.query('COMMIT');
+    return resultado;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
 
 export default pool;

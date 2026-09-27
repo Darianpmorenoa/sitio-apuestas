@@ -23,7 +23,8 @@ const ICONS = {
   registro: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M19 8v6M16 11h6" /></>,
   billetera: <><path d="M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z" /><path d="M3 7l12-4v4" /><circle cx="16.5" cy="13.5" r="1.2" /></>,
   salir: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></>,
-  flecha: <path d="m6 9 6 6 6-6" />
+  flecha: <path d="m6 9 6 6 6-6" />,
+  admin: <><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6z" /><path d="m9 12 2 2 4-4" /></>
 }
 
 function Icon({ name, size = 20, className = '' }) {
@@ -124,6 +125,11 @@ function UserMenu({ user, onLogout }) {
           <Link to="/grupos" role="menuitem" className={`${itemClass} text-tiza`}>
             <Icon name="grupos" size={18} className="text-gris" />Mis grupos
           </Link>
+          {user.es_admin && (
+            <Link to="/admin" role="menuitem" className={`${itemClass} text-tiza`}>
+              <Icon name="admin" size={18} className="text-volt" />Panel de administración
+            </Link>
+          )}
           <div className="mx-2 my-1.5 h-px bg-linea" />
           <button
             type="button"

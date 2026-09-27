@@ -6,7 +6,7 @@
 //
 // Necesita el archivo backend/.env con la conexión a la base de datos.
 
-import pool from '../config/database.js';
+import pool, { enTransaccion } from '../config/database.js';
 import { liquidarPartido, anularPartido, LiquidacionError } from '../services/liquidacion.js';
 
 const [idArg, ...resto] = process.argv.slice(2);
@@ -33,21 +33,6 @@ const listarPendientes = async () => {
   console.log('Para anular:    npm run liquidar -- <id> --anular');
 };
 
-const ejecutar = async (accion) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const resumen = await accion(client);
-    await client.query('COMMIT');
-    return resumen;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
 const main = async () => {
   if (!idArg) return listarPendientes();
 
@@ -55,7 +40,7 @@ const main = async () => {
   if (!Number.isInteger(partidoId)) throw new LiquidacionError(`"${idArg}" no es un id de partido válido`);
 
   if (resto[0] === '--anular') {
-    const r = await ejecutar(client => anularPartido(client, partidoId));
+    const r = await enTransaccion(client => anularPartido(client, partidoId));
     console.log(`Partido suspendido: ${r.partido}`);
     console.log(`Apuestas anuladas: ${r.anuladas} · devuelto: $${r.devuelto}`);
     return;
@@ -66,7 +51,7 @@ const main = async () => {
   }
 
   const [golesLocal, golesVisitante] = resto;
-  const r = await ejecutar(client => liquidarPartido(client, partidoId, { golesLocal, golesVisitante }));
+  const r = await enTransaccion(client => liquidarPartido(client, partidoId, { golesLocal, golesVisitante }));
   console.log(`Partido finalizado: ${r.partido} (resultado ${r.resultado})`);
   console.log(`Apuestas ganadas: ${r.ganadas} · perdidas: ${r.perdidas} · pagado: $${r.pagado}`);
 };
