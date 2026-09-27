@@ -66,6 +66,7 @@ La base de datos está alojada en [Supabase](https://supabase.com) (PostgreSQL e
 2. En el panel, abre **SQL Editor** y ejecuta el contenido de:
    - `database/schema.sql` (usuarios, equipos, partidos, apuestas y datos de ejemplo)
    - `database/grupos.sql` **solo hasta la línea `-- Inserts de ejemplo`**; esos inserts requieren que exista el usuario con id 1.
+   - Si tu base se creó antes de la liquidación de apuestas, ejecuta también `database/migraciones/001_liquidacion.sql` (agrega las columnas `cuota` y `fecha_liquidacion`; se puede correr más de una vez).
 3. Haz clic en **Connect** → **Session pooler** y copia la URL de conexión:
    ```
    postgresql://postgres.<PROJECT_REF>:[YOUR-PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres
@@ -185,6 +186,24 @@ NODE_ENV=development
 - `GET /api/grupos/:id` - Detalles del grupo (requiere auth)
 - `POST /api/grupos/unirse` - Unirse a grupo (requiere auth)
 - `GET /api/grupos/:id/whatsapp` - Generar link WhatsApp (requiere auth)
+
+## 🏁 Liquidar apuestas
+
+Cuando termina un partido, se registra el marcador desde la terminal (necesita `backend/.env`):
+
+```bash
+cd backend
+npm run liquidar                     # lista los partidos jugados pendientes de liquidar
+npm run liquidar -- 1 2 1            # partido 1 terminó 2-1: liquida sus apuestas
+npm run liquidar -- 1 --anular       # partido 1 suspendido: anula las apuestas y devuelve lo apostado
+```
+
+Al liquidar, en una sola transacción:
+- el partido queda `finalizado` con su marcador y resultado (`1`, `X` o `2`);
+- cada apuesta pendiente queda `ganada` o `perdida`, con su ganancia neta en `ganancia`;
+- a quien acierta se le suma al saldo `monto × cuota` (el monto ya se descontó al apostar).
+
+Un partido ya liquidado o que todavía no se juega no se puede liquidar. La lógica está en `backend/services/liquidacion.js` y se prueba con `npm test`.
 
 ## 🎮 Usuarios de Prueba
 

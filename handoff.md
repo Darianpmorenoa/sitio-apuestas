@@ -1,7 +1,7 @@
 # Handoff: Sitio de Apuestas Deportivas
 
 > Contexto para retomar el trabajo en una nueva sesión con Claude.
-> Última actualización: 2026-09-27.
+> Última actualización: 2026-09-27 (rama `liquidar-apuestas`).
 > **Al empezar una sesión nueva:** pide a Claude que lea este archivo y ejecuta `git status` y `git log --oneline`, porque el estado puede haber cambiado.
 
 ## 1. Qué es el proyecto
@@ -62,10 +62,8 @@ Si el navegador muestra `ERR_CONNECTION_REFUSED` en `:5000`, el backend está de
 - Proyecto Supabase ID: `apyzpytwoofnwxgzjavw`, región **ca-central-1**.
 - **Se usa el Session pooler, NO la conexión directa.** El host directo solo tiene IPv6 y la red del usuario no tiene IPv6 (`ENOTFOUND` → error 500).
 - `backend/.env` usa `DB_HOST=aws-0-ca-central-1.pooler.supabase.com`, `DB_USER=postgres.apyzpytwoofnwxgzjavw`, `DB_PORT=5432`, `DB_NAME=postgres`. La contraseña y el `JWT_SECRET` están solo en el archivo local.
-- Datos de prueba creados por Claude (se pueden borrar):
-  - Usuario `prueba907405448@test.com` (la contraseña la tiene el usuario; no se versiona). Tiene 2 apuestas pendientes ($50 y $10), saldo $940.
-  - Grupo "Grupo de prueba" (id 1), admin: ese usuario.
-- El usuario también tiene su propia cuenta de pruebas ("juan").
+- Los datos de prueba que había creado Claude (usuario `prueba907405448@test.com`, sus apuestas y el "Grupo de prueba") se borraron el 2026-09-27.
+- El usuario tiene su propia cuenta de pruebas ("juan"). Para probar, crear una cuenta nueva en `/register` o pedirle credenciales.
 
 ## 4. Diseño "Estadio nocturno"
 
@@ -100,7 +98,8 @@ Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), re
 
 - [ ] **Completar las páginas legales** antes de publicar (aparecen resaltadas en ámbar en `pages/Legal.jsx`): nombre del responsable, correo de contacto, edad mínima (puesta en 18) y plazos (puestos en 30 días). Idealmente, revisión de un abogado (Ley 19.628 y su reforma).
 - [ ] Decidir el nombre de la marca (hoy "APUESTAS.CL").
-- [ ] **Liquidar apuestas:** el backend nunca marca apuestas como ganadas/perdidas ni guarda `ganancia`. Por eso Mis apuestas muestra "—" en ganancia/acierto y el ranking de grupos usa el saldo. Falta un proceso que cargue marcadores (`goles_local`, `goles_visitante`) y cierre apuestas.
+- [x] **Liquidar apuestas** (rama `liquidar-apuestas`): `npm run liquidar` en `backend/` registra el marcador, marca apuestas como ganadas/perdidas, guarda la ganancia neta y paga al saldo; `--anular` devuelve lo apostado. Cada apuesta guarda su `cuota` (migración `database/migraciones/001_liquidacion.sql`, **ya aplicada en Supabase**). Tests con `npm test` en `backend/`.
+- [ ] Liquidación desde la web: hoy solo por terminal. Falta un rol de administrador (no existe en `usuarios`) y una pantalla para cargar marcadores.
 - [ ] Las URLs `http://localhost:5000` siguen fijas en el código; hay un proxy `/api` en Vite sin usar.
 - [ ] Los logs de depuración en `middleware/auth.js` y `bets.js` siguen activos.
 - [ ] No existe `.env.example`.
