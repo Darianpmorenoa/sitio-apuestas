@@ -58,7 +58,15 @@ INSERT INTO equipos (nombre, liga) VALUES
 ('O''Higgins', 'Primera División'),
 ('Audax Italiano', 'Primera División'),
 ('Everton', 'Primera División'),
-('Unión La Calera', 'Primera División');
+('Unión La Calera', 'Primera División'),
+('Universidad de Concepción', 'Primera División'),
+('Huachipato', 'Primera División'),
+('Cobresal', 'Primera División'),
+('Coquimbo Unido', 'Primera División'),
+('Deportes La Serena', 'Primera División'),
+('Deportes Concepción', 'Primera División'),
+('Deportes Limache', 'Primera División'),
+('Palestino', 'Primera División');
 
 -- Insertar partidos de ejemplo
 INSERT INTO partidos (equipo_local, equipo_visitante, fecha, liga, estado) VALUES

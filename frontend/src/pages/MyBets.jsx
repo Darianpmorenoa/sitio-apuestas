@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import axios from 'axios'
 import Crest from '../components/Crest'
 import { ODDS, SALDO_INICIAL, formatMoney, formatKickoff } from '../utils/futbol'
+import { API_URL } from '../utils/api'
 
 const FILTERS = [
   { id: 'todas', label: 'Todas' },
@@ -131,7 +132,7 @@ export default function MyBets({ token, user }) {
 
   const fetchBets = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/bets', {
+      const response = await axios.get(`${API_URL}/bets`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setBets(response.data)

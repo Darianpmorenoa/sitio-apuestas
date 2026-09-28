@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Crest from '../components/Crest'
 import { ODDS, formatMoney } from '../utils/futbol'
+import { API_URL } from '../utils/api'
 
 const QUICK_AMOUNTS = [10, 25, 50, 100]
 const MAX_BET = 100000
@@ -96,7 +97,7 @@ export default function Matches({ token, user, onUserUpdate }) {
   const userSaldo = parseFloat(user?.saldo) || 0
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/matches')
+    axios.get(`${API_URL}/matches`)
       .then(response => setMatches(response.data.filter(m => m.estado === 'pendiente')))
       .catch(() => setError('Error al cargar los partidos'))
       .finally(() => setLoading(false))
@@ -135,7 +136,8 @@ export default function Matches({ token, user, onUserUpdate }) {
   const monto = parseFloat(betAmount)
   const amountError =
     !betAmount ? '' :
-    isNaN(monto) || monto <= 0 ? 'El monto debe ser mayor a 0' :
+    isNaN(monto) || monto < 1 ? 'El monto mínimo es $1' :
+    Number(monto.toFixed(2)) !== monto ? 'El monto admite como máximo 2 decimales' :
     monto > userSaldo ? `Saldo insuficiente. Tienes ${formatMoney(userSaldo)}.` :
     monto > MAX_BET ? `El monto máximo por apuesta es ${formatMoney(MAX_BET)}` : ''
   const canSubmit = betAmount && !amountError && !bettingLoading
@@ -147,7 +149,7 @@ export default function Matches({ token, user, onUserUpdate }) {
     setBettingLoading(true)
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/bets',
+        `${API_URL}/bets`,
         { partido_id: selectedMatch.id, monto, prediccion: prediction },
         { headers: { Authorization: `Bearer ${token}` } }
       )

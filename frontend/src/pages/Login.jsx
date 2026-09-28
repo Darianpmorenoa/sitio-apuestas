@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { formatKickoff } from '../utils/futbol'
 import { AuthLayout, Field, PasswordField, FormAlert, SubmitButton } from '../components/AuthLayout'
+import { API_URL } from '../utils/api'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -11,7 +12,7 @@ function NextMatch() {
   const [match, setMatch] = useState(null)
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/matches')
+    axios.get(`${API_URL}/matches`)
       .then(({ data }) => {
         const next = data
           .filter(m => m.estado === 'pendiente' && new Date(m.fecha) > new Date())
@@ -62,7 +63,7 @@ export default function Login({ onLogin }) {
     setLoading(true)
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post(`${API_URL}/auth/login`, {
         email: email.toLowerCase().trim(),
         password
       })

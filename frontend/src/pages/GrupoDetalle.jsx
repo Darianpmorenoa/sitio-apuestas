@@ -3,8 +3,9 @@ import { Link, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { formatMoney, formatKickoff } from '../utils/futbol'
 import { groupInitials, groupTile } from '../utils/grupos'
+import { API_URL } from '../utils/api'
 
-const API = 'http://localhost:5000/api/grupos'
+const API = `${API_URL}/grupos`
 
 // Colores de avatar para los miembros [fondo, texto], elegidos por su id
 const AVATAR_COLORS = [

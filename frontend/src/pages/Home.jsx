@@ -4,8 +4,8 @@ import axios from 'axios'
 import Crest from '../components/Crest'
 import { ODDS, SALDO_INICIAL, formatMoney, formatKickoff } from '../utils/futbol'
 import { groupInitials, groupTile } from '../utils/grupos'
+import { API_URL } from '../utils/api'
 
-const API = 'http://localhost:5000/api'
 const QUICK_AMOUNTS = [10, 25, 50, 100]
 
 const firstName = (name = '') => name.split(/\s+/)[0] || name
@@ -68,7 +68,7 @@ function FeaturedMatch({ match, user, token, onUserUpdate, onBetPlaced }) {
     setMessage(null)
     try {
       const response = await axios.post(
-        `${API}/bets`,
+        `${API_URL}/bets`,
         { partido_id: match.id, monto: amount, prediccion: pick },
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -228,7 +228,7 @@ export default function Home({ user, token, onUserUpdate }) {
   const [groups, setGroups] = useState([])
 
   useEffect(() => {
-    axios.get(`${API}/matches`)
+    axios.get(`${API_URL}/matches`)
       .then(({ data }) => setMatches(data.filter(m => m.estado === 'pendiente')))
       .catch(() => setMatches([]))
       .finally(() => setLoadingMatches(false))
@@ -237,10 +237,10 @@ export default function Home({ user, token, onUserUpdate }) {
   const loadActivity = useCallback(() => {
     if (!token) return
     const headers = { Authorization: `Bearer ${token}` }
-    axios.get(`${API}/bets`, { headers })
+    axios.get(`${API_URL}/bets`, { headers })
       .then(({ data }) => setPendingBets(data.filter(b => b.estado === 'pendiente')))
       .catch(() => {})
-    axios.get(`${API}/grupos`, { headers })
+    axios.get(`${API_URL}/grupos`, { headers })
       .then(({ data }) => setGroups(data))
       .catch(() => {})
   }, [token])

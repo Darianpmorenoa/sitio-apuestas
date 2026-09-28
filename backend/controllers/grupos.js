@@ -1,4 +1,5 @@
-import pool from '../config/database.js';
+import pool, { enTransaccion } from '../config/database.js';
+import { esIdValido } from '../utils/validators.js';
 
 // Generar código único para invitación
 const generarCodigo = () => {
@@ -10,24 +11,30 @@ export const crearGrupo = async (req, res) => {
     const { nombre, descripcion } = req.body;
     const creador_id = req.user.id;
 
-    if (!nombre) {
+    if (typeof nombre !== 'string' || !nombre.trim()) {
       return res.status(400).json({ error: 'El nombre del grupo es requerido' });
+    }
+    if (nombre.trim().length > 100) {
+      return res.status(400).json({ error: 'El nombre del grupo no debe exceder 100 caracteres' });
+    }
+    if (descripcion != null && (typeof descripcion !== 'string' || descripcion.length > 500)) {
+      return res.status(400).json({ error: 'La descripción no debe exceder 500 caracteres' });
     }
 
     const codigo = generarCodigo();
 
-    const result = await pool.query(
-      'INSERT INTO grupos (nombre, descripcion, creador_id, codigo_invitacion) VALUES ($1, $2, $3, $4) RETURNING *',
-      [nombre, descripcion || null, creador_id, codigo]
-    );
-
-    const grupo = result.rows[0];
-
-    // Agregar al creador como miembro admin
-    await pool.query(
-      'INSERT INTO miembros_grupo (grupo_id, usuario_id, rol) VALUES ($1, $2, $3)',
-      [grupo.id, creador_id, 'admin']
-    );
+    // El grupo y su creador (como admin) se guardan juntos o ninguno
+    const grupo = await enTransaccion(async (client) => {
+      const result = await client.query(
+        'INSERT INTO grupos (nombre, descripcion, creador_id, codigo_invitacion) VALUES ($1, $2, $3, $4) RETURNING *',
+        [nombre.trim(), descripcion?.trim() || null, creador_id, codigo]
+      );
+      await client.query(
+        'INSERT INTO miembros_grupo (grupo_id, usuario_id, rol) VALUES ($1, $2, $3)',
+        [result.rows[0].id, creador_id, 'admin']
+      );
+      return result.rows[0];
+    });
 
     res.status(201).json({
       message: 'Grupo creado exitosamente',
@@ -63,6 +70,10 @@ export const obtenerGrupoDetalle = async (req, res) => {
   try {
     const { id } = req.params;
     const usuario_id = req.user.id;
+
+    if (!esIdValido(id)) {
+      return res.status(404).json({ error: 'Grupo no encontrado' });
+    }
 
     // Verificar que el usuario es miembro del grupo
     const miembroCheck = await pool.query(
@@ -113,13 +124,13 @@ export const unirseAlGrupo = async (req, res) => {
     const { codigo } = req.body;
     const usuario_id = req.user.id;
 
-    if (!codigo) {
+    if (typeof codigo !== 'string' || !codigo.trim()) {
       return res.status(400).json({ error: 'Código de invitación requerido' });
     }
 
     const grupoResult = await pool.query(
       'SELECT * FROM grupos WHERE codigo_invitacion = $1 AND activo = true',
-      [codigo.toUpperCase()]
+      [codigo.trim().toUpperCase()]
     );
 
     if (grupoResult.rows.length === 0) {
@@ -158,6 +169,10 @@ export const obtenerLinkWhatsApp = async (req, res) => {
   try {
     const { id } = req.params;
     const usuario_id = req.user.id;
+
+    if (!esIdValido(id)) {
+      return res.status(404).json({ error: 'Grupo no encontrado' });
+    }
 
     // Verificar que es admin del grupo
     const adminCheck = await pool.query(

@@ -4,8 +4,9 @@ import axios from 'axios'
 import Crest from '../components/Crest'
 import { TEAM_NAMES, formatKickoff } from '../utils/futbol'
 import { hasScore, buildTable } from '../utils/tabla'
+import { API_URL } from '../utils/api'
 
-const API = 'http://localhost:5000/api/matches'
+const API = `${API_URL}/matches`
 
 const FORM_STYLES = {
   G: 'bg-volt text-noche',

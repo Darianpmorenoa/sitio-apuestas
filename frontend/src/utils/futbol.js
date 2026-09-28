@@ -15,7 +15,15 @@ const TEAMS = {
   "O'Higgins": ['OHI', '#0EA5E9', '#0A0E14'],
   'Audax Italiano': ['AI', '#15803D', '#FFFFFF'],
   'Everton': ['EVE', '#1E3A8A', '#FACC15'],
-  'Unión La Calera': ['ULC', '#B91C1C', '#FFFFFF']
+  'Unión La Calera': ['ULC', '#B91C1C', '#FFFFFF'],
+  'Universidad de Concepción': ['UDC', '#FACC15', '#1E3A8A'],
+  'Huachipato': ['HUA', '#2563EB', '#0A0E14'],
+  'Cobresal': ['COB', '#EA580C', '#FFFFFF'],
+  'Coquimbo Unido': ['CQU', '#FACC15', '#0A0E14'],
+  'Deportes La Serena': ['DLS', '#9F1239', '#FFFFFF'],
+  'Deportes Concepción': ['DCO', '#7C3AED', '#FFFFFF'],
+  'Deportes Limache': ['LIM', '#E11D48', '#FFFFFF'],
+  'Palestino': ['PAL', '#059669', '#FFFFFF']
 }
 
 // Equipos de la Primera División que conoce el sitio

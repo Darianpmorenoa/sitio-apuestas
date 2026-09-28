@@ -3,8 +3,9 @@ import axios from 'axios'
 import Crest from '../components/Crest'
 import { Field, FormAlert } from '../components/AuthLayout'
 import { TEAM_NAMES, formatMoney, formatKickoff } from '../utils/futbol'
+import { API_URL } from '../utils/api'
 
-const API = 'http://localhost:5000/api/admin'
+const API = `${API_URL}/admin`
 
 const button =
   'flex items-center justify-center rounded-[14px] px-5 font-body text-sm font-extrabold transition-colors disabled:cursor-wait disabled:opacity-70'
@@ -274,7 +275,7 @@ export default function Admin({ token, onUserUpdate }) {
   // Si el administrador también apostó, su saldo pudo cambiar
   const refrescarUsuario = async () => {
     try {
-      const { data } = await axios.get('http://localhost:5000/api/auth/verify', { headers })
+      const { data } = await axios.get(`${API_URL}/auth/verify`, { headers })
       onUserUpdate(data.user)
     } catch { /* el saldo se actualizará al recargar */ }
   }

@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { cuotaDe } from '../utils/cuotas.js';
+import { validateBetAmount, esIdValido } from '../utils/validators.js';
 
 export const createBet = async (req, res) => {
   try {
@@ -16,15 +17,18 @@ export const createBet = async (req, res) => {
       return res.status(400).json({ error: 'Predicción inválida' });
     }
 
+    if (!esIdValido(partido_id)) {
+      return res.status(400).json({ error: 'Partido inválido' });
+    }
+
     const userResult = await pool.query('SELECT saldo FROM usuarios WHERE id = $1', [usuario_id]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    const userSaldo = userResult.rows[0].saldo;
-
-    if (monto <= 0 || monto > userSaldo) {
-      return res.status(400).json({ error: 'Monto inválido o saldo insuficiente' });
+    const validacionMonto = validateBetAmount(monto, userResult.rows[0].saldo);
+    if (!validacionMonto.valid) {
+      return res.status(400).json({ error: validacionMonto.error });
     }
 
     const matchResult = await pool.query('SELECT id, fecha, estado FROM partidos WHERE id = $1', [partido_id]);
@@ -72,7 +76,7 @@ export const createBet = async (req, res) => {
   } catch (error) {
     console.error('❌ Error al crear apuesta:', error.message);
     console.error('Stack:', error.stack);
-    res.status(500).json({ error: error.message || 'Error al realizar la apuesta' });
+    res.status(500).json({ error: 'Error al realizar la apuesta' });
   }
 };
 
@@ -90,7 +94,8 @@ export const getUserBets = async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error al obtener apuestas:', error);
+    res.status(500).json({ error: 'Error al obtener las apuestas' });
   }
 };
 
@@ -98,6 +103,10 @@ export const getBetById = async (req, res) => {
   try {
     const { id } = req.params;
     const usuario_id = req.user.id;
+
+    if (!esIdValido(id)) {
+      return res.status(404).json({ error: 'Apuesta no encontrada' });
+    }
 
     const result = await pool.query(
       'SELECT * FROM apuestas WHERE id = $1 AND usuario_id = $2',
@@ -110,6 +119,7 @@ export const getBetById = async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error al obtener la apuesta:', error);
+    res.status(500).json({ error: 'Error al obtener la apuesta' });
   }
 };

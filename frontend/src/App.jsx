@@ -13,6 +13,8 @@ import Grupos from './pages/Grupos'
 import GrupoDetalle from './pages/GrupoDetalle'
 import Legal from './pages/Legal'
 import Admin from './pages/Admin'
+import NotFound from './pages/NotFound'
+import { API_URL } from './utils/api'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -26,7 +28,7 @@ function App() {
 
       if (savedToken && savedUser) {
         try {
-          const response = await axios.get('http://localhost:5000/api/auth/verify', {
+          const response = await axios.get(`${API_URL}/auth/verify`, {
             headers: { Authorization: `Bearer ${savedToken}` }
           })
 
@@ -107,6 +109,7 @@ function App() {
         />
         <Route path="/terminos" element={<Legal doc="terminos" />} />
         <Route path="/privacidad" element={<Legal doc="privacidad" />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Footer />
       </div>

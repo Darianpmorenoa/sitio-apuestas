@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
+import { validateEmail, validatePassword, validateNombre } from '../utils/validators.js';
 
 export const register = async (req, res) => {
   try {
@@ -8,6 +9,13 @@ export const register = async (req, res) => {
 
     if (!email || !password || !nombre) {
       return res.status(400).json({ error: 'Email, contraseña y nombre son requeridos' });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ error: 'El email no es válido' });
+    }
+    for (const validacion of [validateNombre(nombre), validatePassword(password)]) {
+      if (!validacion.valid) return res.status(400).json({ error: validacion.error });
     }
 
     const userExists = await pool.query('SELECT id FROM usuarios WHERE email = $1', [email.toLowerCase()]);
@@ -42,7 +50,7 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       return res.status(400).json({ error: 'Email y contraseña son requeridos' });
     }
 

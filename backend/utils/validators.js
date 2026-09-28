@@ -1,10 +1,11 @@
 export const validateEmail = (email) => {
+  if (typeof email !== 'string' || email.length > 255) return false;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
 export const validatePassword = (password) => {
-  if (password.length < 6) {
+  if (typeof password !== 'string' || password.length < 6) {
     return { valid: false, error: 'La contraseña debe tener al menos 6 caracteres' };
   }
   if (!/[A-Z]/.test(password)) {
@@ -17,24 +18,36 @@ export const validatePassword = (password) => {
 };
 
 export const validateNombre = (nombre) => {
-  if (!nombre || nombre.trim().length < 3) {
+  if (typeof nombre !== 'string' || nombre.trim().length < 3) {
     return { valid: false, error: 'El nombre debe tener al menos 3 caracteres' };
   }
-  if (nombre.length > 100) {
+  if (nombre.trim().length > 100) {
     return { valid: false, error: 'El nombre no debe exceder 100 caracteres' };
   }
   return { valid: true };
 };
 
 export const validateBetAmount = (amount, saldo) => {
-  if (!amount || amount <= 0) {
-    return { valid: false, error: 'El monto debe ser mayor a 0' };
+  if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+    return { valid: false, error: 'El monto debe ser un número' };
   }
-  if (amount > saldo) {
+  if (amount < 1) {
+    return { valid: false, error: 'El monto mínimo es $1' };
+  }
+  if (Number(amount.toFixed(2)) !== amount) {
+    return { valid: false, error: 'El monto admite como máximo 2 decimales' };
+  }
+  if (amount > parseFloat(saldo)) {
     return { valid: false, error: 'Saldo insuficiente' };
   }
   if (amount > 100000) {
-    return { valid: false, error: 'El monto máximo es $100,000' };
+    return { valid: false, error: 'El monto máximo es $100.000' };
   }
   return { valid: true };
+};
+
+// Ids de la URL o del cuerpo: enteros positivos (evita errores de Postgres con "abc")
+export const esIdValido = (id) => {
+  const n = Number(id);
+  return Number.isInteger(n) && n > 0 && n <= 2147483647;
 };

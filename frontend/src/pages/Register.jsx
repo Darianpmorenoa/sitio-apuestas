@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { AuthLayout, Field, PasswordField, FormAlert, SubmitButton } from '../components/AuthLayout'
+import { API_URL } from '../utils/api'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -94,7 +95,7 @@ export default function Register({ onLogin }) {
     setLoading(true)
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post(`${API_URL}/auth/register`, {
         nombre: nombre.trim(),
         email: email.toLowerCase().trim(),
         password

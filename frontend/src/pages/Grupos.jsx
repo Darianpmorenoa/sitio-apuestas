@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { Field, FormAlert } from '../components/AuthLayout'
 import { groupInitials, groupTile } from '../utils/grupos'
+import { API_URL } from '../utils/api'
 
-const API = 'http://localhost:5000/api/grupos'
+const API = `${API_URL}/grupos`
 
 function PanelTitle({ icon, children }) {
   return (
@@ -140,6 +141,7 @@ export default function Grupos({ token }) {
                 type="text"
                 autoComplete="off"
                 placeholder="¿De qué se trata?"
+                maxLength={500}
                 value={nuevoGrupo.descripcion}
                 onChange={(e) => setNuevoGrupo({ ...nuevoGrupo, descripcion: e.target.value })}
                 disabled={enviando === 'crear'}

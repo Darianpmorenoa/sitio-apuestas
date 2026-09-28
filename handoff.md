@@ -14,12 +14,13 @@ Sitio web full-stack de apuestas **virtuales** (sin dinero real) sobre la **Prim
 
 ## 2. Estado actual (resumen rápido)
 
-- `main` está sincronizado con GitHub y no hay cambios sin commit.
+- Rama de trabajo `api-url` (API_URL, QA y partidos reales), con commit pero todavía sin unir a `main` ni subir a GitHub.
 - **Todo el sitio está rediseñado** con el tema oscuro "Estadio nocturno" en Tailwind CSS v4.
 - **Panel de administración** en `/admin`: registrar marcadores (liquidar), suspender partidos y crear partidos nuevos. Solo para usuarios con `es_admin`.
 - La liquidación también sigue disponible por terminal (`npm run liquidar` en `backend/`).
 - El partido 1 (Colo-Colo vs U. de Chile) se liquidó 1-1 desde el panel el 2026-09-27; la apuesta de juan al empate quedó ganada.
-- **Sin probar todavía:** hacer una apuesta real con el backend nuevo y confirmar que se guarda la columna `cuota`; la vista móvil del panel.
+- **Sin probar todavía:** la vista móvil del panel.
+- **Partidos reales cargados (2026-09-27):** el pendiente de la fecha 23 (U. de Concepción vs Huachipato, vie 2 oct 20:00) y toda la fecha 24 (10 al 12 de octubre). Los partidos de ejemplo 2 a 5 se **suspendieron** (apuestas anuladas y montos devueltos: $150 a juan, $10 al admin).
 
 ## 3. Stack
 
@@ -42,7 +43,7 @@ backend/
   services/partidos.js      # validar y crear partidos nuevos
   scripts/liquidar.js       # comando `npm run liquidar`
   scripts/admin.js          # comando `npm run admin` (dar/quitar rol de administrador)
-  tests/                    # pruebas de liquidación y de partidos
+  tests/                    # pruebas de liquidación, partidos y validadores
   utils/cuotas.js           # cuotas fijas por pronóstico (1.85 / 3.20 / 4.10)
   utils/validators.js
   .env                      # NO está en git (credenciales)
@@ -58,12 +59,14 @@ frontend/src/
     futbol.js               # ODDS, equipos, formatMoney, formatKickoff, SALDO_INICIAL
     grupos.js               # iniciales y color de la ficha de cada grupo
     tabla.js                # cálculo de la tabla de posiciones
-  pages/                    # Home, Login, Register, Matches, MyBets, Stats, Grupos, GrupoDetalle, Legal, Admin
+    api.js                  # API_URL: base de la API (`/api` o VITE_API_URL)
+  pages/                    # Home, Login, Register, Matches, MyBets, Stats, Grupos, GrupoDetalle, Legal, Admin, NotFound (404)
 database/
   schema.sql                # esquema completo + datos de ejemplo (instalación nueva)
   grupos.sql                # grupos, miembros_grupo, apuestas_grupo
   migraciones/001_liquidacion.sql      # columnas cuota y fecha_liquidacion (ya aplicada en Supabase)
   migraciones/002_administradores.sql  # columna usuarios.es_admin (ya aplicada en Supabase)
+  migraciones/003_equipos_2026.sql     # 8 clubes de la Liga de Primera 2026 que faltaban (ya aplicada en Supabase)
 ```
 
 ### Rutas del frontend
@@ -92,7 +95,7 @@ Si el navegador muestra `ERR_CONNECTION_REFUSED` en `:5000`, el backend está de
 
 - Saldo inicial: **$1.000** virtuales. No es dinero, no se canjea.
 - Cuotas fijas: **1 → 1.85**, **X → 3.20**, **2 → 4.10** (`backend/utils/cuotas.js` y `frontend/src/utils/futbol.js`; deben coincidir).
-- Al apostar se descuenta el monto del saldo (de forma atómica) y se guarda la `cuota`. No se puede apostar en partidos que ya empezaron, finalizados o suspendidos. Máximo $100.000 por apuesta.
+- Al apostar se descuenta el monto del saldo (de forma atómica) y se guarda la `cuota`. No se puede apostar en partidos que ya empezaron, finalizados o suspendidos. Monto: número entre $1 y $100.000 con hasta 2 decimales (validado en backend y frontend).
 - Estados de **partido**: `pendiente` → `finalizado` | `suspendido`.
 - Estados de **apuesta**: `pendiente` → `ganada` | `perdida` | `anulada`.
 - Al **liquidar** (una sola transacción): se guarda marcador y resultado del partido; cada apuesta queda ganada o perdida con su **ganancia neta** (`ganancia`, negativa si se pierde); al ganador se le suma `monto × cuota`. Un partido no se liquida dos veces ni antes de jugarse.
@@ -154,16 +157,29 @@ Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), re
 2. **Bug de zona horaria corregido** (`config/database.js`): las columnas `TIMESTAMP` guardan UTC, pero `pg` las leía como hora de Chile y las fechas quedaban 3 h corridas (se podía apostar hasta 3 h después del inicio). Ahora se leen y escriben como UTC.
 3. `enTransaccion` en `config/database.js`, compartido por el panel y `npm run liquidar`.
 
+### Sesión 4 (QA)
+1. **QA de la API** (48 casos: auth, partidos, apuestas, grupos, admin) y **del frontend** en el navegador (registro, apuesta, grupos, 404, cierre de sesión, 375 px sin desborde). Se borraron las cuentas de prueba.
+2. **Errores corregidos:**
+   - El registro aceptaba emails inválidos y contraseñas débiles (el backend no usaba `validators.js`).
+   - Se podía apostar $0,001 (quedaba una apuesta de $0,00) y el backend no aplicaba el máximo de $100.000.
+   - Ids con texto (`/api/matches/abc`, `/api/grupos/abc`…), nombres largos o tipos incorrectos daban **error 500** y algunos mostraban el mensaje interno de Postgres.
+   - Crear grupo no era atómico (el grupo podía quedar sin su admin).
+   - Las rutas inexistentes del frontend mostraban una página en blanco (ahora `NotFound`).
+3. **Partidos reales** de la Liga de Primera: migración 003 (8 clubes nuevos, con escudo en `utils/futbol.js`) y 9 partidos creados con `crearPartido` (horario de Chile, UTC-3). Fuentes: ESPN, Cooperativa, Emol y En Cancha.
+
 ## 8. Próximos pasos
 
-- [ ] **Probar una apuesta real** con el backend nuevo y revisar que la apuesta guarde `cuota`.
+- [x] **Probar una apuesta real**: la apuesta guarda `cuota` (probado el 2026-09-27 con la cuenta admin).
 - [ ] **Completar las páginas legales** antes de publicar (resaltado en ámbar en `pages/Legal.jsx`): nombre del responsable, correo de contacto, edad mínima (puesta en 18) y plazos (puestos en 30 días). Idealmente, revisión de un abogado (Ley 19.628 y su reforma).
 - [ ] Decidir el nombre de la marca (hoy "APUESTAS.CL").
 - [x] **Liquidación desde la web** y **carga de partidos nuevos**: panel `/admin` (sesión 3).
 - [ ] Probar la vista móvil del panel (390 px).
 - [ ] No hay forma de **revertir una liquidación** si se carga un marcador equivocado (hoy habría que corregirlo a mano en la base).
+- [x] Partidos de ejemplo 2 a 5 suspendidos (2026-09-27).
+- [ ] Magallanes y Deportes Iquique no juegan la Primera 2026, pero siguen en `TEAMS` (`utils/futbol.js`) y aparecen en la tabla de posiciones.
+- [ ] Cargar la fecha 25 (fin de semana del 24-25 de octubre) cuando la ANFP publique los horarios.
 - [ ] Los partidos de ejemplo no guardan `equipo_local_id`/`equipo_visitante_id` (los creados desde el panel sí).
-- [ ] Las URLs `http://localhost:5000` siguen fijas en el código; hay un proxy `/api` en Vite sin usar.
+- [x] URLs de la API: el frontend usa `API_URL` (`src/utils/api.js`), que vale `/api` en desarrollo (proxy de Vite) o `VITE_API_URL` al publicar.
 - [ ] Los logs de depuración en `middleware/auth.js` y `bets.js` siguen activos.
 - [ ] No existe `.env.example`.
 - [ ] La tabla `apuestas_grupo` no se usa (el detalle muestra las apuestas de los miembros).
@@ -172,6 +188,7 @@ Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), re
 ## 9. Cuidados y gotchas
 
 - **Tailwind v4 con preflight:** la base está en `index.css` (`@layer base`). No hay CSS por página; todo va con clases de Tailwind y los tokens del tema.
+- **Llamadas a la API:** usar siempre `${API_URL}/...` de `utils/api.js`, nunca `http://localhost:5000`.
 - Reutiliza `utils/futbol.js`, `Crest` y `AuthLayout` (Field, FormAlert…) en vez de duplicar formatos o estilos.
 - Si cambias las cuotas, cámbialas en **backend y frontend**.
 - Cambios de base de datos: crear una migración nueva en `database/migraciones/` (numerada, que se pueda correr más de una vez), actualizar `schema.sql` y avisar antes de aplicarla en Supabase.
