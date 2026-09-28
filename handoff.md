@@ -24,15 +24,13 @@ Sitio web full-stack de apuestas **virtuales** (sin dinero real) sobre la **Prim
 ## 2. Estado actual y qué hacer primero
 
 ### Git
-- `main` = `763ddfc`, subido a GitHub (QA, partidos reales, página 404, `API_URL`).
-- Rama **`creditos-enteros`** (sin unir a `main`, sin subir):
-  - `352aae1`: panel `/admin` en móvil (nombres completos, marcador en una línea). Con commit.
-  - **Cambios sin commit:** créditos enteros + apuesta en una transacción + migración 004 + pruebas + este handoff. Ya probados (31 pruebas OK, build OK, verificado con playwright-cli). Falta que el usuario pida el commit y el merge a `main`.
+- Todo está en `main`, sin cambios pendientes. **`main` local va por delante de GitHub** con los commits `352aae1` (panel móvil), `449ca72` (créditos enteros) y el de este handoff. Falta subirlos (`git push origin main`) cuando el usuario lo pida.
+- GitHub (`origin/main`) está en `763ddfc`.
 
 ### Pendiente del usuario (en este orden)
 1. **Aplicar la migración `004_creditos_enteros.sql`** en el editor SQL de Supabase. Primero correr la consulta de revisión que trae en los comentarios (muestra las filas con decimales, que son las únicas que cambian). **Ojo:** el backend con nodemon ya ejecuta el código nuevo, que exige créditos enteros. Si alguna fila tiene decimales, apostar o liquidar sobre ella falla hasta aplicar la migración.
 2. **Quitar la cuenta de prueba** `qa_admin_1790562613450@test.cl` (id 9, tiene rol admin): `npm run admin -- qa_admin_1790562613450@test.cl --quitar` desde `backend/` y borrarla en la tabla `usuarios` de Supabase.
-3. Pedir el commit de la rama `creditos-enteros` y unirla a `main`.
+3. Subir `main` a GitHub cuando se quiera.
 4. Decidir una **base de pruebas** (PostgreSQL local o un proyecto Supabase aparte) para QA con datos reales.
 
 ### Funcionalidad
@@ -178,14 +176,14 @@ Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), re
    - Las rutas inexistentes mostraban una página en blanco (ahora `pages/NotFound.jsx`).
 3. **Partidos reales**: migración 003 (8 clubes con escudo en `utils/futbol.js`) y 9 partidos (fecha 23 pendiente + fecha 24), horario de Chile (UTC-3). Fuentes: ESPN, Cooperativa, Emol y En Cancha. U. de Chile vs Ñublense se reprogramó al lunes 12/10 18:00 en el Santa Laura.
 4. **Partidos de ejemplo 2 a 5 suspendidos** con `npm run liquidar -- <id> --anular` (devueltos $150 a juan y $10 al admin).
-5. **Panel `/admin` en móvil** (`352aae1`, rama `creditos-enteros`): probado con playwright-cli a 390 px; nombres cortados y marcador partido, arreglado.
-6. **Créditos enteros** (rama `creditos-enteros`, sin commit): migración 004, `creditosDe`/`pagoDe`, `services/apuestas.js` con la apuesta completa en una transacción (antes la revisión del partido quedaba fuera y podía quedar una apuesta pendiente en un partido ya liquidado), frontend sin `parseFloat`, cupón solo con enteros, redondeo explicado en `/terminos`, 11 pruebas nuevas.
+5. **Panel `/admin` en móvil** (`352aae1`): probado con playwright-cli a 390 px; nombres cortados y marcador partido, arreglado.
+6. **Créditos enteros** (`449ca72`): migración 004, `creditosDe`/`pagoDe`, `services/apuestas.js` con la apuesta completa en una transacción (antes la revisión del partido quedaba fuera y podía quedar una apuesta pendiente en un partido ya liquidado), frontend sin `parseFloat`, cupón solo con enteros, redondeo explicado en `/terminos`, 11 pruebas nuevas.
 7. **Reglas nuevas del usuario** (sección 0). Antes de esa regla se usó la base de producción para el QA y la carga de partidos; los datos de prueba se borraron, salvo la cuenta id 9.
 8. Se instaló `playwright-cli` global y su skill para Claude.
 
 ## 8. Próximos pasos
 
-- [ ] **Aplicar la migración 004** (usuario) y unir `creditos-enteros` a `main` (ver sección 2).
+- [ ] **Aplicar la migración 004** (usuario) y subir `main` a GitHub (ver sección 2).
 - [ ] **Quitar la cuenta de prueba** id 9 (usuario).
 - [ ] **Base de pruebas** (local o Supabase aparte) para QA con datos. Luego conviene un `.env.test` (que tampoco se commitea) y un `.env.example` sin credenciales.
 - [ ] **Completar las páginas legales** antes de publicar (resaltado en ámbar en `pages/Legal.jsx`): nombre del responsable, correo de contacto, edad mínima (puesta en 18) y plazos (puestos en 30 días). Idealmente, revisión de un abogado (Ley 19.628 y su reforma).
