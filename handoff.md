@@ -24,14 +24,12 @@ Sitio web full-stack de apuestas **virtuales** (sin dinero real) sobre la **Prim
 ## 2. Estado actual y qué hacer primero
 
 ### Git
-- Todo está en `main`, sin cambios pendientes. **`main` local va por delante de GitHub** con los commits `352aae1` (panel móvil), `449ca72` (créditos enteros) y el de este handoff. Falta subirlos (`git push origin main`) cuando el usuario lo pida.
-- GitHub (`origin/main`) está en `763ddfc`.
+- `main` está sincronizado con GitHub y no hay cambios sin commit. Los últimos trabajos son `352aae1` (panel móvil) y `449ca72` (créditos enteros).
 
 ### Pendiente del usuario (en este orden)
 1. **Aplicar la migración `004_creditos_enteros.sql`** en el editor SQL de Supabase. Primero correr la consulta de revisión que trae en los comentarios (muestra las filas con decimales, que son las únicas que cambian). **Ojo:** el backend con nodemon ya ejecuta el código nuevo, que exige créditos enteros. Si alguna fila tiene decimales, apostar o liquidar sobre ella falla hasta aplicar la migración.
 2. **Quitar la cuenta de prueba** `qa_admin_1790562613450@test.cl` (id 9, tiene rol admin): `npm run admin -- qa_admin_1790562613450@test.cl --quitar` desde `backend/` y borrarla en la tabla `usuarios` de Supabase.
-3. Subir `main` a GitHub cuando se quiera.
-4. Decidir una **base de pruebas** (PostgreSQL local o un proyecto Supabase aparte) para QA con datos reales.
+3. Decidir una **base de pruebas** (PostgreSQL local o un proyecto Supabase aparte) para QA con datos reales.
 
 ### Funcionalidad
 - Sitio completo con el tema oscuro "Estadio nocturno" (Tailwind v4), responsive (probado a 390 px y 1280 px).
@@ -183,7 +181,7 @@ Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), re
 
 ## 8. Próximos pasos
 
-- [ ] **Aplicar la migración 004** (usuario) y subir `main` a GitHub (ver sección 2).
+- [ ] **Aplicar la migración 004** (usuario; ver sección 2).
 - [ ] **Quitar la cuenta de prueba** id 9 (usuario).
 - [ ] **Base de pruebas** (local o Supabase aparte) para QA con datos. Luego conviene un `.env.test` (que tampoco se commitea) y un `.env.example` sin credenciales.
 - [ ] **Completar las páginas legales** antes de publicar (resaltado en ámbar en `pages/Legal.jsx`): nombre del responsable, correo de contacto, edad mínima (puesta en 18) y plazos (puestos en 30 días). Idealmente, revisión de un abogado (Ley 19.628 y su reforma).
