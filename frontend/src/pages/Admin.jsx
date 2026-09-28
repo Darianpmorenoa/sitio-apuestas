@@ -139,14 +139,19 @@ function PartidoRow({ partido, children }) {
   return (
     <li className="flex flex-col gap-3 border-b border-linea px-5 py-4 last:border-b-0 sm:flex-row sm:items-center sm:gap-5">
       <span className="w-40 shrink-0 font-cifras text-[13px] font-bold text-gris">{formatKickoff(partido.fecha)}</span>
-      <div className="flex min-w-0 flex-1 items-center gap-2 text-sm font-extrabold">
-        <Crest name={partido.equipo_local} className="h-7 w-7 text-[10px]" />
-        <span className="truncate">{partido.equipo_local}</span>
-        <span className="px-1 font-display text-lg italic text-linea-fuerte">
+      {/* Local | VS o marcador | visita: los nombres largos pasan a una segunda línea en vez de cortarse */}
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-sm font-extrabold leading-tight">
+        <div className="flex min-w-0 items-center gap-2">
+          <Crest name={partido.equipo_local} className="h-7 w-7 text-[10px]" />
+          <span className="break-words">{partido.equipo_local}</span>
+        </div>
+        <span className="whitespace-nowrap px-1 font-display text-lg italic text-linea-fuerte">
           {partido.estado === 'finalizado' ? <span className="font-cifras not-italic text-tiza">{partido.goles_local}–{partido.goles_visitante}</span> : 'VS'}
         </span>
-        <span className="truncate">{partido.equipo_visitante}</span>
-        <Crest name={partido.equipo_visitante} className="h-7 w-7 text-[10px]" />
+        <div className="flex min-w-0 items-center justify-end gap-2 text-right">
+          <span className="break-words">{partido.equipo_visitante}</span>
+          <Crest name={partido.equipo_visitante} className="h-7 w-7 text-[10px]" />
+        </div>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-3">{children}</div>
     </li>
