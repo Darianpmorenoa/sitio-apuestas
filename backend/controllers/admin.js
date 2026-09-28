@@ -26,7 +26,7 @@ export const listarPartidos = async (req, res) => {
         (p.estado = 'pendiente' AND p.fecha < NOW()) AS por_liquidar,
         COUNT(a.id)::int AS total_apuestas,
         COUNT(a.id) FILTER (WHERE a.estado = 'pendiente')::int AS apuestas_pendientes,
-        COALESCE(SUM(a.monto) FILTER (WHERE a.estado = 'pendiente'), 0) AS monto_pendiente
+        COALESCE(SUM(a.monto) FILTER (WHERE a.estado = 'pendiente'), 0)::int AS monto_pendiente
       FROM partidos p
       LEFT JOIN apuestas a ON a.partido_id = p.id
       GROUP BY p.id

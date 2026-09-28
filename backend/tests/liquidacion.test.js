@@ -8,24 +8,46 @@ test('resultadoDe: local, empate y visita', () => {
   assert.equal(resultadoDe(0, 3), '2');
 });
 
-test('calcularLiquidacion: apuesta ganada usa la cuota guardada', () => {
-  const r = calcularLiquidacion({ monto: '50.00', prediccion: '1', cuota: '1.85' }, '1');
-  assert.deepEqual(r, { estado: 'ganada', ganancia: 42.5, pago: 92.5 });
+test('calcularLiquidacion: apuesta ganada usa la cuota guardada y paga redondeando hacia abajo', () => {
+  // 50 × 1.85 = 92,5 → paga 92
+  const r = calcularLiquidacion({ monto: 50, prediccion: '1', cuota: '1.85' }, '1');
+  assert.deepEqual(r, { estado: 'ganada', ganancia: 42, pago: 92 });
 });
 
 test('calcularLiquidacion: sin cuota guardada usa la cuota fija del pronóstico', () => {
-  const r = calcularLiquidacion({ monto: '10.00', prediccion: 'X', cuota: null }, 'X');
+  const r = calcularLiquidacion({ monto: 10, prediccion: 'X', cuota: null }, 'X');
   assert.deepEqual(r, { estado: 'ganada', ganancia: 22, pago: 32 });
 });
 
 test('calcularLiquidacion: apuesta perdida no paga y pierde el monto', () => {
-  const r = calcularLiquidacion({ monto: '30.00', prediccion: '2', cuota: '4.10' }, '1');
+  const r = calcularLiquidacion({ monto: 30, prediccion: '2', cuota: '4.10' }, '1');
   assert.deepEqual(r, { estado: 'perdida', ganancia: -30, pago: 0 });
 });
 
-test('calcularLiquidacion: redondea a centavos', () => {
-  const r = calcularLiquidacion({ monto: '33.33', prediccion: '2', cuota: '4.10' }, '2');
-  assert.deepEqual(r, { estado: 'ganada', ganancia: 103.32, pago: 136.65 });
+test('calcularLiquidacion: los pagos son siempre enteros y nunca se redondean hacia arriba', () => {
+  const casos = [
+    // [monto, cuota, pago esperado]
+    [5, '1.85', 9],      // 9,25
+    [1, '1.85', 1],      // 1,85
+    [3, '3.20', 9],      // 9,6
+    [7, '4.10', 28],     // 28,7
+    [100, '1.85', 185],  // exacto
+    [100000, '4.10', 410000]
+  ];
+  for (const [monto, cuota, pago] of casos) {
+    const r = calcularLiquidacion({ monto, prediccion: '1', cuota }, '1');
+    assert.equal(r.pago, pago, `${monto} × ${cuota}`);
+    assert.equal(r.ganancia, pago - monto);
+    assert.ok(Number.isInteger(r.pago) && Number.isInteger(r.ganancia));
+  }
+});
+
+test('calcularLiquidacion: acepta montos enteros que la base devuelve como texto', () => {
+  assert.equal(calcularLiquidacion({ monto: '20.00', prediccion: 'X', cuota: '3.20' }, 'X').pago, 64);
+});
+
+test('calcularLiquidacion: rechaza montos con decimales (créditos no enteros)', () => {
+  assert.throws(() => calcularLiquidacion({ monto: '33.33', prediccion: '2', cuota: '4.10' }, '2'), /no entero/);
 });
 
 // Cliente falso que simula la base de datos en memoria
@@ -62,9 +84,9 @@ const crearClienteFalso = ({ partido, apuestas, saldos }) => {
 const datosDePrueba = () => ({
   partido: { id: 7, equipo_local: 'Colo-Colo', equipo_visitante: 'Universidad de Chile', fecha: '2026-01-01T20:00:00Z', estado: 'pendiente' },
   apuestas: [
-    { id: 1, usuario_id: 10, monto: '50.00', prediccion: '1', cuota: '1.85', estado: 'pendiente' },
-    { id: 2, usuario_id: 11, monto: '20.00', prediccion: 'X', cuota: '3.20', estado: 'pendiente' },
-    { id: 3, usuario_id: 10, monto: '10.00', prediccion: '2', cuota: '4.10', estado: 'pendiente' }
+    { id: 1, usuario_id: 10, monto: 50, prediccion: '1', cuota: '1.85', estado: 'pendiente' },
+    { id: 2, usuario_id: 11, monto: 20, prediccion: 'X', cuota: '3.20', estado: 'pendiente' },
+    { id: 3, usuario_id: 10, monto: 10, prediccion: '2', cuota: '4.10', estado: 'pendiente' }
   ],
   saldos: { 10: 900, 11: 980 }
 });
@@ -75,9 +97,9 @@ test('liquidarPartido: marca el partido, liquida apuestas y paga a los ganadores
 
   assert.equal(db.partido.estado, 'finalizado');
   assert.equal(db.partido.resultado, '1');
-  assert.deepEqual(db.apuestas.map(a => [a.estado, a.ganancia]), [['ganada', 42.5], ['perdida', -20], ['perdida', -10]]);
-  assert.deepEqual(db.saldos, { 10: 992.5, 11: 980 });
-  assert.deepEqual(resumen, { partido: 'Colo-Colo 2-1 Universidad de Chile', resultado: '1', ganadas: 1, perdidas: 2, pagado: 92.5 });
+  assert.deepEqual(db.apuestas.map(a => [a.estado, a.ganancia]), [['ganada', 42], ['perdida', -20], ['perdida', -10]]);
+  assert.deepEqual(db.saldos, { 10: 992, 11: 980 });
+  assert.deepEqual(resumen, { partido: 'Colo-Colo 2-1 Universidad de Chile', resultado: '1', ganadas: 1, perdidas: 2, pagado: 92 });
 });
 
 test('liquidarPartido: no liquida dos veces el mismo partido', async () => {

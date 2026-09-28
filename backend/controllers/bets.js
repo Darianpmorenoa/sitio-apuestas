@@ -1,81 +1,17 @@
-import pool from '../config/database.js';
-import { cuotaDe } from '../utils/cuotas.js';
-import { validateBetAmount, esIdValido } from '../utils/validators.js';
+import pool, { enTransaccion } from '../config/database.js';
+import { crearApuesta, ApuestaError } from '../services/apuestas.js';
+import { esIdValido } from '../utils/validators.js';
 
+// Toda la apuesta (validar, descontar saldo y registrarla) ocurre en una sola transacción
 export const createBet = async (req, res) => {
   try {
-    const { partido_id, monto, prediccion } = req.body;
-    const usuario_id = req.user.id;
-
-    console.log('📝 Creando apuesta:', { partido_id, monto, prediccion, usuario_id });
-
-    if (!partido_id || !monto || !prediccion) {
-      return res.status(400).json({ error: 'Partido, monto y predicción son requeridos' });
-    }
-
-    if (!['1', 'X', '2'].includes(prediccion)) {
-      return res.status(400).json({ error: 'Predicción inválida' });
-    }
-
-    if (!esIdValido(partido_id)) {
-      return res.status(400).json({ error: 'Partido inválido' });
-    }
-
-    const userResult = await pool.query('SELECT saldo FROM usuarios WHERE id = $1', [usuario_id]);
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    const validacionMonto = validateBetAmount(monto, userResult.rows[0].saldo);
-    if (!validacionMonto.valid) {
-      return res.status(400).json({ error: validacionMonto.error });
-    }
-
-    const matchResult = await pool.query('SELECT id, fecha, estado FROM partidos WHERE id = $1', [partido_id]);
-    if (matchResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Partido no encontrado' });
-    }
-
-    if (matchResult.rows[0].estado !== 'pendiente') {
-      return res.status(400).json({ error: 'Este partido ya no acepta apuestas' });
-    }
-
-    const matchDate = new Date(matchResult.rows[0].fecha);
-    if (matchDate < new Date()) {
-      return res.status(400).json({ error: 'No se puede apostar en partidos que ya han comenzado' });
-    }
-
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      const saldoResult = await client.query(
-        'UPDATE usuarios SET saldo = saldo - $1 WHERE id = $2 AND saldo >= $1 RETURNING saldo',
-        [monto, usuario_id]
-      );
-      if (saldoResult.rows.length === 0) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: 'Saldo insuficiente' });
-      }
-      const result = await client.query(
-        'INSERT INTO apuestas (usuario_id, partido_id, monto, prediccion, cuota, estado) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [usuario_id, partido_id, monto, prediccion, cuotaDe(prediccion), 'pendiente']
-      );
-      await client.query('COMMIT');
-
-      res.status(201).json({
-        message: 'Apuesta realizada exitosamente',
-        bet: result.rows[0],
-        saldo: parseFloat(saldoResult.rows[0].saldo)
-      });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    const { apuesta, saldo } = await enTransaccion(client => crearApuesta(client, req.user.id, req.body ?? {}));
+    res.status(201).json({ message: 'Apuesta realizada exitosamente', bet: apuesta, saldo });
   } catch (error) {
-    console.error('❌ Error al crear apuesta:', error.message);
-    console.error('Stack:', error.stack);
+    if (error instanceof ApuestaError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error('Error al crear apuesta:', error);
     res.status(500).json({ error: 'Error al realizar la apuesta' });
   }
 };

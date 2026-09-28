@@ -1,10 +1,8 @@
-import { cuotaDe } from '../utils/cuotas.js';
+import { cuotaDe, creditosDe, pagoDe } from '../utils/cuotas.js';
 
 // Estados posibles
 // partidos: pendiente → finalizado | suspendido
 // apuestas: pendiente → ganada | perdida | anulada
-
-const redondear = (n) => Math.round(n * 100) / 100;
 
 export class LiquidacionError extends Error {}
 
@@ -12,16 +10,15 @@ export class LiquidacionError extends Error {}
 export const resultadoDe = (golesLocal, golesVisitante) =>
   golesLocal > golesVisitante ? '1' : golesLocal < golesVisitante ? '2' : 'X';
 
-// Qué le pasa a una apuesta según el resultado del partido.
+// Qué le pasa a una apuesta según el resultado del partido. Todo en créditos enteros.
 // ganancia: ganancia neta que se guarda en la apuesta.
-// pago: lo que se suma al saldo (el monto ya se descontó al apostar).
+// pago: lo que se suma al saldo (el monto ya se descontó al apostar), redondeado hacia abajo.
 export const calcularLiquidacion = (apuesta, resultado) => {
-  const monto = parseFloat(apuesta.monto);
-  const cuota = parseFloat(apuesta.cuota ?? cuotaDe(apuesta.prediccion));
+  const monto = creditosDe(apuesta.monto);
 
   if (apuesta.prediccion === resultado) {
-    const pago = redondear(monto * cuota);
-    return { estado: 'ganada', ganancia: redondear(pago - monto), pago };
+    const pago = pagoDe(monto, apuesta.cuota ?? cuotaDe(apuesta.prediccion));
+    return { estado: 'ganada', ganancia: pago - monto, pago };
   }
   return { estado: 'perdida', ganancia: -monto, pago: 0 };
 };
@@ -85,7 +82,7 @@ export const liquidarPartido = async (client, partidoId, { golesLocal, golesVisi
 
     if (estado === 'ganada') resumen.ganadas++;
     else resumen.perdidas++;
-    resumen.pagado = redondear(resumen.pagado + pago);
+    resumen.pagado += pago;
   }
 
   return resumen;
@@ -99,14 +96,14 @@ export const anularPartido = async (client, partidoId) => {
   const resumen = { partido: `${partido.equipo_local} vs ${partido.equipo_visitante}`, anuladas: 0, devuelto: 0 };
 
   for (const apuesta of await apuestasPendientes(client, partidoId)) {
-    const monto = parseFloat(apuesta.monto);
+    const monto = creditosDe(apuesta.monto);
     await client.query(
       "UPDATE apuestas SET estado = 'anulada', ganancia = 0, fecha_liquidacion = NOW() WHERE id = $1",
       [apuesta.id]
     );
     await sumarSaldo(client, apuesta.usuario_id, monto);
     resumen.anuladas++;
-    resumen.devuelto = redondear(resumen.devuelto + monto);
+    resumen.devuelto += monto;
   }
 
   return resumen;

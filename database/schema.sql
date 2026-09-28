@@ -4,7 +4,7 @@ CREATE TABLE usuarios (
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
   nombre VARCHAR(100) NOT NULL,
-  saldo DECIMAL(10, 2) DEFAULT 1000,
+  saldo INTEGER DEFAULT 1000 CONSTRAINT usuarios_saldo_no_negativo CHECK (saldo >= 0), -- créditos enteros
   es_admin BOOLEAN NOT NULL DEFAULT false, -- puede usar el panel /admin
   fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -38,10 +38,10 @@ CREATE TABLE apuestas (
   id SERIAL PRIMARY KEY,
   usuario_id INT REFERENCES usuarios(id),
   partido_id INT REFERENCES partidos(id),
-  monto DECIMAL(10, 2) NOT NULL,
+  monto INTEGER NOT NULL CONSTRAINT apuestas_monto_positivo CHECK (monto > 0), -- créditos enteros
   prediccion VARCHAR(10) NOT NULL, -- 1 (local), X (empate), 2 (visitante)
   cuota DECIMAL(5, 2), -- cuota al momento de apostar
-  ganancia DECIMAL(10, 2), -- ganancia neta al liquidar (negativa si se pierde)
+  ganancia INTEGER, -- ganancia neta al liquidar en créditos enteros (negativa si se pierde)
   estado VARCHAR(20) DEFAULT 'pendiente', -- pendiente, ganada, perdida, anulada
   fecha_apuesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   fecha_liquidacion TIMESTAMP

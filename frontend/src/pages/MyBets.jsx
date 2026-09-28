@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import Crest from '../components/Crest'
-import { ODDS, SALDO_INICIAL, formatMoney, formatKickoff } from '../utils/futbol'
+import { ODDS, SALDO_INICIAL, formatMoney, formatKickoff, pagoPotencial } from '../utils/futbol'
 import { API_URL } from '../utils/api'
 
 const FILTERS = [
@@ -25,14 +25,14 @@ const ROW_COLS = 'lg:grid-cols-[minmax(0,1fr)_104px_72px_56px_100px_96px]'
 const formatSigned = (value) => `${value < 0 ? '−' : '+'}${formatMoney(value)}`
 
 // Cuota guardada al apostar; las apuestas antiguas usan la cuota fija del pronóstico
-const betOdds = (bet) => parseFloat(bet.cuota) || ODDS[bet.prediccion] || ODDS['1']
+const betOdds = (bet) => Number(bet.cuota) || ODDS[bet.prediccion] || ODDS['1']
 
 // Ganancia neta de una apuesta cerrada: la calcula el servidor al liquidar
 const betProfit = (bet) => {
-  const monto = parseFloat(bet.monto)
-  if (bet.ganancia != null) return parseFloat(bet.ganancia)
+  const monto = Number(bet.monto)
+  if (bet.ganancia != null) return Number(bet.ganancia)
   if (bet.estado === 'perdida') return -monto
-  if (bet.estado === 'ganada') return monto * (betOdds(bet) - 1)
+  if (bet.estado === 'ganada') return pagoPotencial(monto, betOdds(bet)) - monto
   return 0
 }
 
@@ -67,9 +67,9 @@ function StatCard({ label, value, hint, accent = false, valueClass = '', childre
 function BetRow({ bet }) {
   const status = STATUS[bet.estado] ?? STATUS.pendiente
   const odds = betOdds(bet)
-  const monto = parseFloat(bet.monto)
+  const monto = Number(bet.monto)
   const pending = bet.estado === 'pendiente'
-  const result = pending ? formatMoney(monto * odds)
+  const result = pending ? formatMoney(pagoPotencial(monto, odds))
     : bet.estado === 'anulada' ? `${formatMoney(monto)} devuelto`
     : formatSigned(betProfit(bet))
 
@@ -146,7 +146,7 @@ export default function MyBets({ token, user }) {
   const settled = bets.filter(b => b.estado === 'ganada' || b.estado === 'perdida')
   const won = settled.filter(b => b.estado === 'ganada').length
   const hitRate = settled.length ? Math.round((won / settled.length) * 100) : null
-  const totalStaked = bets.reduce((sum, b) => sum + parseFloat(b.monto), 0)
+  const totalStaked = bets.reduce((sum, b) => sum + Number(b.monto), 0)
   const netProfit = settled.reduce((sum, b) => sum + betProfit(b), 0)
   const streak = settled.slice(0, 5)
   const byPick = ['1', 'X', '2'].map(pick => ({ pick, count: bets.filter(b => b.prediccion === pick).length }))

@@ -141,9 +141,9 @@ export default function GrupoDetalle({ token, user }) {
     )
   }
 
-  const ranking = [...miembros].sort((a, b) => parseFloat(b.saldo) - parseFloat(a.saldo))
+  const ranking = [...miembros].sort((a, b) => Number(b.saldo) - Number(a.saldo))
   const myIndex = ranking.findIndex(m => m.id === user?.id)
-  const leaderGap = myIndex > 0 ? parseFloat(ranking[0].saldo) - parseFloat(ranking[myIndex].saldo) : 0
+  const leaderGap = myIndex > 0 ? Number(ranking[0].saldo) - Number(ranking[myIndex].saldo) : 0
 
   return shell(
     <>

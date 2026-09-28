@@ -27,21 +27,19 @@ export const validateNombre = (nombre) => {
   return { valid: true };
 };
 
+// Montos de apuesta: créditos enteros entre $1 y $100.000, sin pasar el saldo
 export const validateBetAmount = (amount, saldo) => {
-  if (typeof amount !== 'number' || !Number.isFinite(amount)) {
-    return { valid: false, error: 'El monto debe ser un número' };
+  if (typeof amount !== 'number' || !Number.isSafeInteger(amount)) {
+    return { valid: false, error: 'El monto debe ser un número entero' };
   }
   if (amount < 1) {
     return { valid: false, error: 'El monto mínimo es $1' };
   }
-  if (Number(amount.toFixed(2)) !== amount) {
-    return { valid: false, error: 'El monto admite como máximo 2 decimales' };
-  }
-  if (amount > parseFloat(saldo)) {
-    return { valid: false, error: 'Saldo insuficiente' };
-  }
   if (amount > 100000) {
     return { valid: false, error: 'El monto máximo es $100.000' };
+  }
+  if (amount > Number(saldo)) {
+    return { valid: false, error: 'Saldo insuficiente' };
   }
   return { valid: true };
 };

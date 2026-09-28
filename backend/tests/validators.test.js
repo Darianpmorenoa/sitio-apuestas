@@ -23,24 +23,25 @@ test('validateNombre: entre 3 y 100 caracteres', () => {
   }
 });
 
-test('validateBetAmount: número de $1 a $100.000, con hasta 2 decimales y sin pasar el saldo', () => {
-  assert.equal(validateBetAmount(10, '1000.00').valid, true);
-  assert.equal(validateBetAmount(12.5, '1000.00').valid, true);
-  assert.equal(validateBetAmount(100000, '500000.00').valid, true);
+test('validateBetAmount: entero de $1 a $100.000 sin pasar el saldo', () => {
+  assert.equal(validateBetAmount(10, 1000).valid, true);
+  assert.equal(validateBetAmount(1000, '1000').valid, true);
+  assert.equal(validateBetAmount(100000, 500000).valid, true);
 
   const casos = [
-    [0.001, /mínimo/],
     [0, /mínimo/],
     [-5, /mínimo/],
-    ['10', /número/],
-    [NaN, /número/],
-    [Infinity, /número/],
-    [10.555, /2 decimales/],
+    ['10', /entero/],
+    [12.5, /entero/],
+    [0.001, /entero/],
+    [NaN, /entero/],
+    [Infinity, /entero/],
+    [2 ** 53, /entero/],
     [1500, /Saldo insuficiente/],
     [100001, /máximo/]
   ];
   for (const [monto, error] of casos) {
-    const saldo = monto === 100001 ? '500000.00' : '1000.00';
+    const saldo = monto === 100001 ? 500000 : 1000;
     assert.match(validateBetAmount(monto, saldo).error ?? '', error, `monto ${monto}`);
   }
 });

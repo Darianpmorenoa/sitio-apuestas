@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 
-const UPDATED_AT = '26 de septiembre de 2026'
+const UPDATED_AT = '27 de septiembre de 2026'
 
 // Datos que el dueño del sitio debe completar antes de publicar
 function Pendiente({ children }) {
@@ -76,7 +76,7 @@ const TERMINOS = {
         <List items={[
           <>Eliges un pronóstico: <Strong>1</Strong> (gana el local), <Strong>X</Strong> (empate) o <Strong>2</Strong> (gana la visita).</>,
           'Solo puedes apostar antes de que empiece el partido y con el saldo que tengas disponible.',
-          'Las cuotas se muestran al apostar y son las que se usan para calcular la ganancia.',
+          'Las cuotas se muestran al apostar y son las que se usan para calcular la ganancia. El saldo y los montos son en pesos enteros: el pago se redondea hacia abajo (por ejemplo, $5 a cuota 1.85 paga $9).',
           'Una apuesta confirmada no se puede cancelar.',
           'Los resultados se toman del marcador oficial del partido. Si un partido se suspende o anula, podemos anular las apuestas y devolver el saldo apostado.'
         ]} />

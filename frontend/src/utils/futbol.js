@@ -4,6 +4,10 @@ export const ODDS = { '1': 1.85, 'X': 3.2, '2': 4.1 }
 
 export const SALDO_INICIAL = 1000
 
+// Pago de una apuesta ganada en créditos enteros: monto × cuota, redondeado hacia abajo.
+// Igual que pagoDe en backend/utils/cuotas.js ($5 a cuota 1.85 = 9,25 → $9)
+export const pagoPotencial = (monto, cuota) => Math.floor((monto * Math.round(Number(cuota) * 100)) / 100)
+
 // Escudo de cada club con iniciales: [abreviatura, fondo, texto]
 const TEAMS = {
   'Colo-Colo': ['CC', '#F2F5F9', '#0A0E14'],
@@ -37,11 +41,10 @@ export const teamStyle = (name) => {
   return { abbr, bg, fg }
 }
 
-// $1.003 o $92,50 (formato chileno, sin decimales si el monto es entero)
+// $1.003 (formato chileno; los créditos son enteros)
 export const formatMoney = (value) => {
   const n = Math.abs(Number(value) || 0)
-  const decimals = Number.isInteger(n) ? 0 : 2
-  return `$${n.toLocaleString('es-CL', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
+  return `$${n.toLocaleString('es-CL', { maximumFractionDigits: 0 })}`
 }
 
 // "Hoy · 20:00", "Mañana · 20:00" o "Sáb 27 sep · 17:30"

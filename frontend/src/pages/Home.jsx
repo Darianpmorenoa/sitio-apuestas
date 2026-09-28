@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import Crest from '../components/Crest'
-import { ODDS, SALDO_INICIAL, formatMoney, formatKickoff } from '../utils/futbol'
+import { ODDS, SALDO_INICIAL, formatMoney, formatKickoff, pagoPotencial } from '../utils/futbol'
 import { groupInitials, groupTile } from '../utils/grupos'
 import { API_URL } from '../utils/api'
 
@@ -51,8 +51,8 @@ function FeaturedMatch({ match, user, token, onUserUpdate, onBetPlaced }) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
 
-  const saldo = parseFloat(user?.saldo) || 0
-  const payout = amount * ODDS[pick]
+  const saldo = Number(user?.saldo) || 0
+  const payout = pagoPotencial(amount, ODDS[pick])
   const pickTarget = pick === '1' ? `a ${match.equipo_local}` : pick === '2' ? `a ${match.equipo_visitante}` : 'al empate'
   const insufficient = user && amount > saldo
 
@@ -346,8 +346,8 @@ export default function Home({ user, token, onUserUpdate }) {
                 <p className="text-niebla">No tienes apuestas pendientes. Elige un partido y haz tu pronóstico.</p>
               ) : (
                 pendingBets.slice(0, 3).map(bet => {
-                  const odds = parseFloat(bet.cuota) || ODDS[bet.prediccion] || ODDS['1']
-                  const monto = parseFloat(bet.monto)
+                  const odds = Number(bet.cuota) || ODDS[bet.prediccion] || ODDS['1']
+                  const monto = Number(bet.monto)
                   return (
                     <div key={bet.id} className="flex items-center gap-4 rounded-2xl bg-pasto p-4">
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -357,7 +357,7 @@ export default function Home({ user, token, onUserUpdate }) {
                         </span>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1.5">
-                        <span className="font-cifras text-base font-bold">{formatMoney(monto * odds)}</span>
+                        <span className="font-cifras text-base font-bold">{formatMoney(pagoPotencial(monto, odds))}</span>
                         <span className="flex h-6 items-center rounded-full bg-ambar-suave px-2.5 text-[11px] font-extrabold tracking-wider text-ambar">PENDIENTE</span>
                       </div>
                     </div>

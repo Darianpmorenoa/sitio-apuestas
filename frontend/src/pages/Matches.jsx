@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Crest from '../components/Crest'
-import { ODDS, formatMoney } from '../utils/futbol'
+import { ODDS, formatMoney, pagoPotencial } from '../utils/futbol'
 import { API_URL } from '../utils/api'
 
 const QUICK_AMOUNTS = [10, 25, 50, 100]
@@ -94,7 +94,7 @@ export default function Matches({ token, user, onUserUpdate }) {
   const [prediction, setPrediction] = useState('1')
   const [betError, setBetError] = useState('')
   const [bettingLoading, setBettingLoading] = useState(false)
-  const userSaldo = parseFloat(user?.saldo) || 0
+  const userSaldo = Number(user?.saldo) || 0
 
   useEffect(() => {
     axios.get(`${API_URL}/matches`)
@@ -133,15 +133,16 @@ export default function Matches({ token, user, onUserUpdate }) {
     setBetError('')
   }
 
-  const monto = parseFloat(betAmount)
+  // Créditos enteros: "12.5" o "1e3" no son montos válidos
+  const monto = /^\d+$/.test(betAmount) ? Number(betAmount) : NaN
   const amountError =
     !betAmount ? '' :
-    isNaN(monto) || monto < 1 ? 'El monto mínimo es $1' :
-    Number(monto.toFixed(2)) !== monto ? 'El monto admite como máximo 2 decimales' :
+    !Number.isSafeInteger(monto) ? 'El monto debe ser un número entero' :
+    monto < 1 ? 'El monto mínimo es $1' :
     monto > userSaldo ? `Saldo insuficiente. Tienes ${formatMoney(userSaldo)}.` :
     monto > MAX_BET ? `El monto máximo por apuesta es ${formatMoney(MAX_BET)}` : ''
   const canSubmit = betAmount && !amountError && !bettingLoading
-  const payout = !amountError && monto > 0 ? monto * ODDS[prediction] : 0
+  const payout = !amountError && monto > 0 ? pagoPotencial(monto, ODDS[prediction]) : 0
 
   const handleBet = async () => {
     if (!canSubmit) return
@@ -278,7 +279,8 @@ export default function Matches({ token, user, onUserUpdate }) {
               <input
                 id="bet-amount"
                 type="number"
-                inputMode="decimal"
+                inputMode="numeric"
+                step="1"
                 min="1"
                 max={MAX_BET}
                 autoFocus
@@ -309,7 +311,7 @@ export default function Matches({ token, user, onUserUpdate }) {
               ))}
               <button
                 type="button"
-                onClick={() => setBetAmount(String(Math.min(userSaldo, MAX_BET)))}
+                onClick={() => setBetAmount(String(Math.floor(Math.min(userSaldo, MAX_BET))))}
                 disabled={userSaldo <= 0}
                 className="h-9 rounded-full border border-[#2A3545] px-3.5 text-[13px] font-bold text-tiza transition-colors hover:border-linea-fuerte disabled:cursor-not-allowed disabled:opacity-40"
               >
