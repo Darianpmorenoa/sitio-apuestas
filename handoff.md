@@ -29,7 +29,7 @@ Sitio web full-stack de apuestas **virtuales** (sin dinero real) sobre la **Prim
 ### Pendiente del usuario (en este orden)
 1. **Aplicar la migración `004_creditos_enteros.sql`** en el editor SQL de Supabase. Primero correr la consulta de revisión que trae en los comentarios (muestra las filas con decimales, que son las únicas que cambian). **Ojo:** el backend con nodemon ya ejecuta el código nuevo, que exige créditos enteros. Si alguna fila tiene decimales, apostar o liquidar sobre ella falla hasta aplicar la migración.
 2. **Quitar la cuenta de prueba** `qa_admin_1790562613450@test.cl` (id 9, tiene rol admin): `npm run admin -- qa_admin_1790562613450@test.cl --quitar` desde `backend/` y borrarla en la tabla `usuarios` de Supabase.
-3. Decidir una **base de pruebas** (PostgreSQL local o un proyecto Supabase aparte) para QA con datos reales.
+3. **Crear la base de pruebas local:** en `backend/`, correr `npm run pruebas:crear` (pide la contraseña del usuario `postgres` del PostgreSQL 16 local). Después, probar ahí la migración 004 antes de aplicarla en producción.
 
 ### Funcionalidad
 - Sitio completo con el tema oscuro "Estadio nocturno" (Tailwind v4), responsive (probado a 390 px y 1280 px).
@@ -59,10 +59,14 @@ backend/
   services/partidos.js      # validar y crear partidos nuevos
   scripts/liquidar.js       # comando `npm run liquidar`
   scripts/admin.js          # comando `npm run admin` (dar/quitar rol de administrador)
+  scripts/clave.js          # comando `npm run clave -- <email>` (cambiar contraseña, se pide oculta)
+  scripts/base-pruebas.js   # crear/reiniciar la base de pruebas local (npm run pruebas:crear / pruebas:reiniciar)
   tests/                    # apuestas, liquidación, partidos y validadores (31 pruebas)
   utils/cuotas.js           # CUOTAS, creditosDe (exige enteros) y pagoDe (pago redondeado hacia abajo)
   utils/validators.js       # email, contraseña, nombre, monto de apuesta (entero), esIdValido
+  utils/terminal.js         # preguntarOculto (contraseñas en la terminal)
   .env                      # NO está en git (credenciales de producción)
+  .env.test                 # NO está en git (base de pruebas local; lo crea npm run pruebas:crear)
 frontend/src/
   App.jsx                   # rutas + estado global de user/token (handleLogin, handleUserUpdate)
   index.css                 # Tailwind + tokens del diseño (@theme) + base mínima
@@ -96,6 +100,12 @@ database/
 cd backend  && npm run dev   # http://localhost:5000  (OJO: se conecta a producción)
 cd frontend && npm run dev   # http://localhost:3000
 cd backend  && npm test      # pruebas unitarias (no usan la base)
+
+# Base de pruebas LOCAL (PostgreSQL 16 del equipo, base y usuario apuestas_test)
+cd backend  && npm run pruebas:crear      # solo la primera vez (pide la contraseña de postgres)
+cd backend  && npm run pruebas:reiniciar  # borrar todo y recargar datos de prueba
+cd backend  && npm run dev:pruebas        # http://localhost:5001 contra la base de pruebas
+cd frontend && npm run dev:pruebas        # http://localhost:3001 → proxy a 5001
 cd frontend && npm run build # comprobar que compila
 ```
 
@@ -137,6 +147,9 @@ npm run liquidar -- 1 --anular     # el partido 1 se suspendió: devuelve lo apo
 npm run admin                      # lista los administradores
 npm run admin -- <email>           # le da el rol (debe recargar la página para ver el panel)
 npm run admin -- <email> --quitar  # le quita el rol
+npm run clave -- <email>           # cambia la contraseña (se escribe oculta, dos veces; funciona en Git Bash)
+# Versiones para la base de pruebas local (estas sí las puede usar Claude):
+npm run liquidar:pruebas · npm run admin:pruebas · npm run clave:pruebas
 ```
 
 ## 6. Diseño "Estadio nocturno"
@@ -183,7 +196,7 @@ Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), re
 
 - [ ] **Aplicar la migración 004** (usuario; ver sección 2).
 - [ ] **Quitar la cuenta de prueba** id 9 (usuario).
-- [ ] **Base de pruebas** (local o Supabase aparte) para QA con datos. Luego conviene un `.env.test` (que tampoco se commitea) y un `.env.example` sin credenciales.
+- [ ] **Crear la base de pruebas local** (`npm run pruebas:crear`, lo corre el usuario) y usarla para todo QA con datos.
 - [ ] **Completar las páginas legales** antes de publicar (resaltado en ámbar en `pages/Legal.jsx`): nombre del responsable, correo de contacto, edad mínima (puesta en 18) y plazos (puestos en 30 días). Idealmente, revisión de un abogado (Ley 19.628 y su reforma).
 - [ ] Decidir el nombre de la marca (hoy "APUESTAS.CL").
 - [ ] Cargar la **fecha 25** (fin de semana del 24-25 de octubre) cuando la ANFP publique los horarios; liquidar los partidos reales a medida que se jueguen (el primero es el 2 de octubre).
@@ -199,6 +212,8 @@ Proyecto completo, grupos con WhatsApp, migración a Supabase (pooler + SSL), re
 
 ### Datos y seguridad
 - **Nunca usar la base de producción** (sección 0). Tampoco navegar el sitio con el backend local en pruebas que creen datos, porque ese backend escribe en producción.
+- **Base de pruebas local:** `backend/.env.test` apunta a `apuestas_test` en `localhost`. `base-pruebas.js` se niega a correr si el host no es local o si el nombre no termina en `_test`/`_pruebas`. `config/database.js` y `server.js` leen el archivo de `ENV_FILE` (lo define `.env.test`), así los comandos `:pruebas` no cargan el `.env` de producción. Cuentas de prueba: `admin@`, `juan@` y `maria@pruebas.local`, con la contraseña `CLAVE_PRUEBAS` de `.env.test`.
+- La contraseña de `admin123@test.cl` la conoce solo el usuario (la cambió con `npm run clave` el 2026-09-27).
 - **Nunca hacer commit de `.env`** (está en `.gitignore`). Nunca escribir contraseñas ni tokens en archivos versionados ni en el chat.
 - Cambios de base de datos: migración nueva en `database/migraciones/` (numerada, que se pueda correr más de una vez, dentro de `BEGIN/COMMIT`), actualizar `schema.sql` y **que la aplique el usuario**.
 

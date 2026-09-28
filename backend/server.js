@@ -7,7 +7,7 @@ import betsRoutes from './routes/bets.js';
 import gruposRoutes from './routes/grupos.js';
 import adminRoutes from './routes/admin.js';
 
-dotenv.config();
+dotenv.config({ path: process.env.ENV_FILE || '.env' });
 
 const app = express();
 const PORT = process.env.PORT || 5000;

@@ -1,7 +1,8 @@
 import pkg from 'pg';
 import dotenv from 'dotenv';
 
-dotenv.config();
+// ENV_FILE permite usar otra configuración (por ejemplo .env.test para la base de pruebas local)
+dotenv.config({ path: process.env.ENV_FILE || '.env' });
 
 const { Pool, types, defaults } = pkg;
 

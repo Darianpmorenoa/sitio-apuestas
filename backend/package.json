@@ -9,7 +9,14 @@
     "dev": "nodemon server.js",
     "test": "node --test",
     "liquidar": "node scripts/liquidar.js",
-    "admin": "node scripts/admin.js"
+    "admin": "node scripts/admin.js",
+    "pruebas:crear": "node scripts/base-pruebas.js crear",
+    "pruebas:reiniciar": "node scripts/base-pruebas.js reiniciar",
+    "dev:pruebas": "nodemon --exec \"node --env-file=.env.test\" server.js",
+    "liquidar:pruebas": "node --env-file=.env.test scripts/liquidar.js",
+    "admin:pruebas": "node --env-file=.env.test scripts/admin.js",
+    "clave": "node scripts/clave.js",
+    "clave:pruebas": "node --env-file=.env.test scripts/clave.js"
   },
   "keywords": ["apuestas", "futbol", "chile"],
   "author": "",
