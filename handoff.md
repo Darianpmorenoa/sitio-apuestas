@@ -14,7 +14,7 @@ Sitio web full-stack de apuestas **virtuales** (sin dinero real) sobre la **Prim
 
 ## 2. Estado actual (resumen rápido)
 
-- Rama de trabajo `api-url` (API_URL, QA y partidos reales), con commit pero todavía sin unir a `main` ni subir a GitHub.
+- `main` está sincronizado con GitHub y no hay cambios sin commit.
 - **Todo el sitio está rediseñado** con el tema oscuro "Estadio nocturno" en Tailwind CSS v4.
 - **Panel de administración** en `/admin`: registrar marcadores (liquidar), suspender partidos y crear partidos nuevos. Solo para usuarios con `es_admin`.
 - La liquidación también sigue disponible por terminal (`npm run liquidar` en `backend/`).
